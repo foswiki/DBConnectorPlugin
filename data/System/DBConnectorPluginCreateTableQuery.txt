@@ -1,0 +1,1 @@
+CREATE TABLE %TABLENAME% (`%DBCONTABLEKEYFIELD%` varchar(255) PRIMARY KEY, samplefield1 int(10), samplefield2 text);

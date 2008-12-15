@@ -1,18 +1,63 @@
+%META:TOPICINFO{author="EugenMayer" date="1229338237" format="1.1" reprev="1.2" version="1.2"}%
 ---+ !DBConnectorPlugin
-Lets your plugins easy use a DB-backed to store additional topic-data you dont want or even cant store in the rcs
+ Lets your plugins easy use a DB-backed to store additional topic-data you dont want or even cant store in the rcs 
 %TOC%
 
----++ Usage
-   * tba
+---++ Usage and Methods
+ I will give a exmaple on using this plugin with sqlilite when you used the optinal example installion. There will be a table, named by the Web-Name with 
+   * a primare key "topic_id" which will hold the topic name as identifier
+   * samplefield1: And integer field
+   * samplefield2: and text field
+You can also look at [[DBConnectorPluginCreateTableQuery][topic]] to see, which query was used to create the table and also modify it
 
+---+++ getValues( $web, $topic, @fields ) -&gt; ( %result )
+
+get values for out of the database
+   * =$web= - Web name, required, will be used as table
+   * =$topic= Topic name, required, will be used as identifier/key
+   * =@fields= - Array of field names, optional. This fields are fetched out of the db
+Return: =( %result )= Result, a hash with each fetched field-name as ke
+
+if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome you call it :
+<pre>my %result getValues("System",'WebHome',('samplefield1','samplefield2')); accessing results this way print %result-&gt;{'bar'}; </pre>
+
+---+++ updateValues( $web, $topic, $fiedValuePairs ) -&gt; ( )
+
+get values for out of the database
+   * =$web= - Web name, required, will be used as table
+   * =$topic= Topic name, required, will be used as identifier/key
+   * =$fiedValuePairs= reference to a hash, which has the field-name as key and the hash-value as field-value
+Return: -
+
+if you want to update fields ('samplefield1','samplefield2') from System.WebHome you call it :
+<pre>my %pairs; %pairs-&gt;{'samplefield1'} = 20; %pairs-&gt;{'samplefield2'} = "myvalue1"; # Attention, you must use a reference! updateValues("System",'WebHome',\%pairs); </pre>
+
+---+++ createdb rest handler
+
+if you want to create a initial table for a web, where informations can be stored for topics, you got to run this rest handler to initialize/create it. The query defined on topic Syste.DBConnectorPluginCreateTableQuery is used as a template for the query.
+   * %TABLENAME% gets expanded to the corresponding Web, when you create the table;
+   * %TOPICNAME% gets expanded to the topic. This should be actually always be a existing topic. In normal cases, this value is not needed in the template#
+   * %DBCONTABLEKEYFIELD% gets expanded to the primary key which is defined in the Configuration-Center $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField}
+__you can disallow the creatinof table with unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center__ 
+
+you call the rest handler this way, creating a data for the web "TheWeb"
+<pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
+
+__Attention: If the table exists allready, it will not be touched. No data will be erase or even a other table created__
 ---++ Installation instructions
    * just use the installer attached to the topic or even easier, use the configure-system/Extension to easy install it trough an user-interface
+
 ---+++ Configuration
-   * Use the Configuration Center ( bin/configure ) to configure the driver you want to use, the DSN and user / password      
+   * Use the Configuration Center ( bin/configure ) to configure the driver you want to use, the DSN and user / password
+
+---+++ Optional: Create table
+   1 check this [[DBConnectorPluginCreateTableQuery][topic]] to see, which query is used to create the table for a web, where information is stored
+   1 click [[%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=System.WebHome][here]] to createa a test table for the System-Web
+   1 no you can query the database with update and get queries like described abo
 __Note:__ You do not need to install anything on the browser to use this Plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
 
 |  Plugin Author: | Foswiki:Main.EugenMayer |
-|  Copyright: | &copy; 2006, Impressive.media |
+|  Copyright: | © 2006, Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
 |  Plugin Version: | 11 Dez 2008 (V0.1) |
 |  Change History: | <!-- versions below in reverse order --> |

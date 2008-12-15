@@ -1,0 +1,36 @@
+---+ !DBConnectorPlugin
+Lets your plugins easy use a DB-backed to store additional topic-data you dont want or even cant store in the rcs
+%TOC%
+
+---++ Usage
+   * tba
+
+---++ Installation instructions
+   * just use the installer attached to the topic or even easier, use the configure-system/Extension to easy install it trough an user-interface
+---+++ Configuration
+   * Use the Configuration Center ( bin/configure ) to configure the driver you want to use, the DSN and user / password      
+__Note:__ You do not need to install anything on the browser to use this Plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
+
+|  Plugin Author: | Foswiki:Main.EugenMayer |
+|  Copyright: | &copy; 2006, Impressive.media |
+|  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
+|  Plugin Version: | 11 Dez 2008 (V0.1) |
+|  Change History: | <!-- versions below in reverse order --> |
+|  15 Dez 2008: | initial release |
+|  Foswiki Dependency: | |
+|  CPAN Dependencies: | DBI |
+|  Other Dependencies: | your backed, e.g. DBD::SQLite |
+|  Perl Version: | 5.005 |
+|  Add-on Home: | http://foswiki.org/Extensions/%TOPIC% |
+|  Feedback: | http://foswiki.org/Extensions/%TOPIC%Dev |
+|  Appraisal: | http://foswiki.org/Extensions/%TOPIC%Appraisal |
+ __Related Topic:__
+
+-- Foswiki:Main/EugenMayer - 15 Dez 2008
+
+%META:FORM{name="PackageForm"}%
+%META:FIELD{name="TopicClassification" attributes="" title="TopicClassification" value="PluginPackage"}%
+%META:FIELD{name="Compatibility" attributes="" title="[[Compatibility]]" value=""}%
+%META:FIELD{name="DemoUrl" attributes="" title="DemoUrl" value="http://"}%
+%META:FIELD{name="DevelopedInSVN" attributes="" title="DevelopedInSVN" value="Yes"}%
+%META:FIELD{name="ModificationPolicy" attributes="" title="ModificationPolicy" value="PleaseFeelFreeToModify"}%

@@ -256,8 +256,7 @@ sub _createDB {
     $qrytext =~ s/%DBCONTABLEKEYFIELD%/$TableKeyField/im;
 
     if(!getValues($web,$topic,($TableKeyField))) {
-        $DBC_con->do( $qrytext );        
-           
+         sendQry ($qrytext );
     }
     
     if($DBC_con->errstr ne "") {
@@ -285,6 +284,27 @@ sub _createDB {
     #print $cgiQuery->redirect($url);
 }
 
+
+=begin TML
+---+++ sendQry( $query  ) -> ( $results)
+
+use this method to simply run querys on the database. You get a result like described by getValues 
+   * $query Complete SQL query;
+Return: returning a reference on an hash which has an integer-key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
+=cut
+
+sub sendQry {
+    my $qry = shift;
+    my $qryobj = $DBC_con->prepare($qry);
+    _debug("Runnging direct query '$qry'");
+    # now insert the values for the placeholders into the query
+    $qryobj->execute() or _warn("could not run direct query".$qry);
+    my $results = $qryobj->fetchall_hashref(); 
+    # returning the values as {fieldname} = value pairs. If no row could be fetched, this result is undef
+    _debug("Returned values:", values(%{ $results }));
+    $qryobj->finish;
+    return $results;
+}
 
 1;
 # vim: ft=perl foldmethod=marker

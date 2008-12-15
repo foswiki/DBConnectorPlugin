@@ -49,6 +49,12 @@ __you can disallow the creation of table by unchecking $Foswiki::cfg{Plugins}{DB
 you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
 
+---+++ sendQry( $query  ) -> ( $results)
+
+use this method to simply run querys on the database. You get a result like described by getValues 
+   * $query Complete SQL query;
+Return: returning a reference on an hash which has an integer-key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
+
 __Attention: If the table exists already, it will not be touched. No data will be erase or even a other table created__
 ---++ Installation instructions
    * just use the installer attached to the topic or even easier, use the configure-system/Extension to easy install it trough an user-interface
@@ -62,6 +68,12 @@ __Attention: If the table exists already, it will not be touched. No data will b
    1 no you can query the database with update and get queries like described abo
 __Note:__ You do not need to install anything on the browser to use this Plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
 
+---++ ToDo
+   * provide easy way to remove values
+   * provide easy way to set fields for a topic to the default-values
+   * Build an example-application
+   * auto-creating of tables for all webs and stuff like that
+   
 |  Plugin Author: | Foswiki:Main.EugenMayer |
 |  Copyright: | � 2006, Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |

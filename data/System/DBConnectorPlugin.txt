@@ -1,11 +1,17 @@
 %META:TOPICINFO{author="EugenMayer" date="1229338237" format="1.1" reprev="1.2" version="1.2"}%
 ---+ !DBConnectorPlugin
- Lets your plugins easy use a DB-backed to store additional topic-data you dont want or even cant store in the rcs 
+Lets your plugins easy use a DB-backed to store additional topic-data you don`t want or even can`t store in the rcs 
+   * Set SHORTDESCRIPTION = Lets your plugins easy use a DB-backed to store additional topic-data you don`t want or even can`t store in the rcs 
+
 %TOC%
 
+---++ Introduction
+This plugin enables you to store and read additional topic data in a variable backend very easy. The setup e.g. with SQLite should be straight forward and easy,
+if not, leave me a note. In addition, the database is stored on filesystem-level in the working_areas and is backuped by the old great cp / rsync way like the general topic data
+
 ---++ Usage and Methods
- I will give a exmaple on using this plugin with sqlilite when you used the optinal example installion. There will be a table, named by the Web-Name with 
-   * a primare key "topic_id" which will hold the topic name as identifier
+ I will give a example on using this plugin with !SQLite when you used the optional example installation. There will be a table, named by the Web-Name with 
+   * a primary key "topic_id" which will hold the topic name as identifier
    * samplefield1: And integer field
    * samplefield2: and text field
 You can also look at [[DBConnectorPluginCreateTableQuery][topic]] to see, which query was used to create the table and also modify it
@@ -16,7 +22,7 @@ get values for out of the database
    * =$web= - Web name, required, will be used as table
    * =$topic= Topic name, required, will be used as identifier/key
    * =@fields= - Array of field names, optional. This fields are fetched out of the db
-Return: =( %result )= Result, a hash with each fetched field-name as ke
+Return: =( %result )= Result, a hash with each fetched field-name as key
 
 if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome you call it :
 <pre>my %result getValues("System",'WebHome',('samplefield1','samplefield2')); accessing results this way print %result-&gt;{'bar'}; </pre>
@@ -38,12 +44,12 @@ if you want to create a initial table for a web, where informations can be store
    * %TABLENAME% gets expanded to the corresponding Web, when you create the table;
    * %TOPICNAME% gets expanded to the topic. This should be actually always be a existing topic. In normal cases, this value is not needed in the template#
    * %DBCONTABLEKEYFIELD% gets expanded to the primary key which is defined in the Configuration-Center $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField}
-__you can disallow the creatinof table with unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center__ 
+__you can disallow the creation of table by unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center__ 
 
 you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
 
-__Attention: If the table exists allready, it will not be touched. No data will be erase or even a other table created__
+__Attention: If the table exists already, it will not be touched. No data will be erase or even a other table created__
 ---++ Installation instructions
    * just use the installer attached to the topic or even easier, use the configure-system/Extension to easy install it trough an user-interface
 
@@ -52,14 +58,14 @@ __Attention: If the table exists allready, it will not be touched. No data will 
 
 ---+++ Optional: Create table
    1 check this [[DBConnectorPluginCreateTableQuery][topic]] to see, which query is used to create the table for a web, where information is stored
-   1 click [[%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=System.WebHome][here]] to createa a test table for the System-Web
+   1 click [[%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=System.WebHome][here]] to create a test table for the System-Web
    1 no you can query the database with update and get queries like described abo
 __Note:__ You do not need to install anything on the browser to use this Plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
 
 |  Plugin Author: | Foswiki:Main.EugenMayer |
-|  Copyright: | © 2006, Impressive.media |
+|  Copyright: | ï¿½ 2006, Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Plugin Version: | 11 Dez 2008 (V0.1) |
+|  Plugin Version: | 15 Dez 2008 (V0.1) |
 |  Change History: | <!-- versions below in reverse order --> |
 |  15 Dez 2008: | initial release |
 |  Foswiki Dependency: | |

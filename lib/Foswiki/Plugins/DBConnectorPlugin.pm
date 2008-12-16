@@ -28,6 +28,7 @@ use DBI;
 use Error qw(:try);
 
 
+
 # $VERSION is referred to by Foswiki, and is the only global variable that
 # *must* exist in this package.
 use vars qw( $VERSION $RELEASE $SHORTDESCRIPTION $debug $pluginName $NO_PREFS_IN_TOPIC );
@@ -39,7 +40,7 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.1';
+$RELEASE = '0.2';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
@@ -55,6 +56,7 @@ our $curWeb;
 our $curTopic;
 our $curUser;
 
+
 sub initPlugin {
     my( $topic, $web, $user, $installWeb ) = @_;
     
@@ -63,6 +65,9 @@ sub initPlugin {
     $TableKeyField = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField};
     # Plugin correctly initialized
     _connect();
+    # setup a error handler
+    $DBC_con->{HandleError} = sub { _warn(shift) };
+     
     $curWeb = $web;
     $curTopic = $topic;
     $curUser = $user;
@@ -144,15 +149,17 @@ my %pairs;
 updateValues("System",'WebHome',\%pairs);
 </pre>
 =cut
+
 sub updateValues {
 	my $web = shift;
     my $topic = shift;
     my $fiedValuePairs = shift;
     my $checkAccess = shift || 1;
 	_debug("Updating values inserted",keys %{$fiedValuePairs});
+	#checking acces if i have to. Also checking if the table exists
     if($checkAccess && !_hasAccess("CHANGE")) {
         # no access;
-        return undef;     
+        return ();     
     }
     _createEntryForTopicIfNotExitent($web,$topic);	
 	# craete a field list with placeholder(?), while each field is surrounded by `
@@ -160,13 +167,13 @@ sub updateValues {
     my $qry = qq(UPDATE $web SET $values WHERE `$TableKeyField`='$topic' );  
 
     _debug("Query: $qry");
-    my $qryobj = $DBC_con->prepare($qry);
+    my $qryobj = eval { $DBC_con->prepare($qry) };
     unless ($qryobj) { 
-    	_warn("could not prepare qry ($qry), table missing? \nerror:".$DBC_con->errstr);
+    	_warn("could not prepare qry (".$DBC_con->Statement()."), table missing? \nerror:".$DBC_con->errstr);
     	return;
     }
     # now insert the values for the placeholders into the query
-    $qryobj->execute(values %{$fiedValuePairs}) or _warn("could not insert values for $web.$topic \nerror:".$qryobj->err);
+    eval { $qryobj->execute(values %{$fiedValuePairs}) }or _warn("could not insert values for $web.$topic \nerror:".$DBC_con->errstr,values %{$fiedValuePairs});
     $qryobj->finish();
     _debug("Values upated");
 }
@@ -174,6 +181,7 @@ sub updateValues {
 sub _createEntryForTopicIfNotExitent {
 	my ( $web, $topic ) = @_;
 	_debug("Creating topic entry if not existent");
+
 	my $created = 0;
 	if(!getValues($web,$topic,["topic_id"],0)) {
 		my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
@@ -185,6 +193,59 @@ sub _createEntryForTopicIfNotExitent {
 }
 
 
+=begin TML
+---+++ sendQry( $query  ) -> ( $results)
+
+use this method to simply run querys on the database. You get a result like described by getValues 
+   * $query Complete SQL query;
+Return: returning a hash which has an the topic-identiefer as key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
+=cut
+
+sub sendQry {
+	my $qry = shift;
+    my $table = shift || "";
+
+    _debug("Sending direct query '$qry'");
+    # TODO: add access control? how?
+
+    my $qryobj =  $DBC_con->prepare($qry);
+    my $results;
+    if(! (defined $qryobj)){
+        _warn("could not prepare qry ($qry), table missing? \nerror:".$DBC_con->errstr);
+        return ();
+                
+    }
+    
+    
+    # now insert the values for the placeholders into the query
+    $qryobj->execute() or _warn("could not run direct query".$qry);
+    $results = $qryobj->fetchall_hashref($TableKeyField); 
+    # returning the values as {fieldname} = value pairs. If no row could be fetched, this result is undef
+    _debug("Returned values:", values(%{ $results }));
+    $qryobj->finish;
+    return %{$results};
+}
+
+=begin TML
+---+++ deleteEntry( $web, $topic  ) -> ( )
+
+deletes an entry out of the database $web, identiefied by $topic 
+   * =$web= - Web name, required, will be used as table
+   * =$topic= Topic name, required, will be used as identifier/key
+=cut
+
+sub deleteEntry{
+    my $web = shift;
+    my $topic = shift;
+    my $checkAccess = shift || 1;
+
+    if($checkAccess && !_hasAccess("CHANGE")) {
+        # no access;
+        return;     
+    }
+
+    $DBC_con->do("DELETE from `$web` where `$TableKeyField`='$topic'"); 
+}
 
 =begin TML
 
@@ -198,7 +259,6 @@ if you want to create a initial table for a web, where informations can be store
 you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
 
-__ Attention: If the table exists allready, it will not be touched. No data will be erase or even a other table created __
 =cut
 sub _createDB {
     # TODO: test if there is allready a database, if yes, do not create anything and cancel
@@ -254,45 +314,6 @@ sub _createDB {
 }
 
 
-=begin TML
----+++ sendQry( $query  ) -> ( $results)
-
-use this method to simply run querys on the database. You get a result like described by getValues 
-   * $query Complete SQL query;
-Return: returning a hash which has an the topic-identiefer as key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
-=cut
-
-sub sendQry {
-    my $qry = shift;
-    # TODO: add access control? how?
-    my $qryobj = $DBC_con->prepare($qry);
-    my $results;
-    unless ($qryobj) { 
-        _warn("could not prepare qry ($qry), table missing? \nerror:".$DBC_con->errstr);
-        return $results;
-    }
-    
-    _debug("Runnging direct query '$qry'");
-    # now insert the values for the placeholders into the query
-    $qryobj->execute() or _warn("could not run direct query".$qry);
-    $results = $qryobj->fetchall_hashref($TableKeyField); 
-    # returning the values as {fieldname} = value pairs. If no row could be fetched, this result is undef
-    _debug("Returned values:", values(%{ $results }));
-    $qryobj->finish;
-    return %{$results};
-}
-
-sub deleteEntry{
-	my $web = shift;
-    my $topic = shift;
-    my $checkAccess = shift || 1;
-    if($checkAccess && !_hasAccess("CHANGE")) {
-        # no access;
-        return;     
-    }
-
-	$DBC_con->do("DELETE from `$web` where `$TableKeyField`='$topic'");	
-}
 
 
 sub afterRenameHandler {
@@ -331,7 +352,8 @@ sub afterRenameHandler {
         } 
         
         _updateLinksInWebs($oldWeb, $oldTopic, $newWeb, $newTopic,\@webs);       
-    }    
+    }
+    return 1;    
 }
 
 sub _updateLinksInWebs {
@@ -340,11 +362,12 @@ sub _updateLinksInWebs {
     my @fieldlist = split(";",$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnInvolveFiedlsList});
     my $pattern = '%'.$oldTopic.'%';
     for(my $i = 0; $i < @fieldlist;$i++) {
-        @fieldlist[$i] = "`".@fieldlist[$i]."` LIKE '$pattern'";      
+        $fieldlist[$i] = "`".$fieldlist[$i]."` LIKE '$pattern'";      
     }
     foreach my $curWeb (@webs) {
         #get all entries needing an update
-        my %topicsNeedUpdates = sendQry("SELECT * FROM $curWeb WHERE ".join(" OR ", @fieldlist));
+        _debug("getting topics needs to be fixed");
+        my %topicsNeedUpdates = sendQry("SELECT * FROM $curWeb WHERE ".join(" OR ", @fieldlist), $curWeb);
         
         # go trough all topics needs an update
         if(%topicsNeedUpdates) {
@@ -356,7 +379,7 @@ sub _updateLinksInWebs {
 	                _debug("fixed string is:\n".%topicsNeedUpdates->{$topicid}{$field});
 	            }
 	            # update the entry in the DB. DB name is the current web, the identifier 
-	            updateValues($curWeb,$topicid, \%topicsNeedUpdates->{$topicid},0);              
+	            updateValues($curWeb,$topicid, $topicsNeedUpdates{$topicid},0);              
 	        }  
         }     
     }
@@ -367,7 +390,7 @@ sub _updateLinksInString {
     # TODO: this one should be checked for really working properly -> unit test
     $string =~ s/$oldWeb.$oldTopic/$newWeb.$newTopic/g;
     $string =~ s/$oldWeb\/$oldTopic/$newWeb\/$newTopic/g;
-    $string =~ s/$oldTopic/$newTopic/g;
+    $string =~ s/\b$oldTopic\b/\b$newTopic\b/g;
     return $string;
 }
 
@@ -387,8 +410,8 @@ sub _debug
 
 sub _warn
 {
-    my $message = shift;  
-    _debug($message);  
+    my ($message,@param) = @_;;  
+    _debug($message,@param);  
     return TWiki::Func::writeWarning( $message );
 }
 
@@ -419,7 +442,7 @@ sub _connect {
     $DBC_con = DBI->connect(
         $dsn, "","",
         {
-        #RaiseError => 1,
+        RaiseError => 1,
         #PrintError => 1,
         FetchHashKeyName => NAME_lc =>
         @_
@@ -430,8 +453,7 @@ sub _connect {
         _debug($error);        
         throw Error::Simple($error);
     }        
-    _debug("connection successfully");
-    
+    _debug("connection successfully");    
 }
 
 sub _disconnect
@@ -440,6 +462,7 @@ sub _disconnect
     # diconnect
     $DBC_con->disconnect;
 }
+
 
 1;
 # vim: ft=perl foldmethod=marker

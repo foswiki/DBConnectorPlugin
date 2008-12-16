@@ -7,7 +7,11 @@ Enables you to use simple methods to store and read data for topics, you dont wa
 
 ---++ Introduction
 This plugin enables you to store and read additional topic data in a variable backend very easy. The setup e.g. with SQLite should be straight forward and easy,
-if not, leave me a note. In addition, the database is stored on filesystem-level in the working_areas and is backuped by the old great cp / rsync way like the general topic data
+if not, leave me a note. In addition, the database is stored on filesystem-level in the working_areas and is backuped by the old great cp / rsync way like the general topic data.
+
+In addition, the Connector watches fields you choose to be updated including references on a topic, when this topic gets renamed in Foswiki. This is excatly the same behavior you get when renaming topics with searching for references, to rename them.
+This behavior is enabled by default but can be disabled or only enabled for specific webs
+
 
 ---++ Usage and Methods
  I will give a example on using this plugin with !SQLite when you used the optional example installation. There will be a table, named by the Web-Name with 
@@ -16,71 +20,82 @@ if not, leave me a note. In addition, the database is stored on filesystem-level
    * samplefield2: and text field
 You can also look at [[DBConnectorPluginCreateTableQuery][topic]] to see, which query was used to create the table and also modify it
 
----+++ getValues( $web, $topic, @fields ) -&gt; ( %result )
+*Example application*
+The plugin TopicSpecificNavigationPlugin is a good and simple example on how to use DBConnectorPlugin
 
-get values for out of the database
+---+++ getValues( $web, $topic, @fields ) -> ( %result )
+
+get values for out of the database 
    * =$web= - Web name, required, will be used as table
    * =$topic= Topic name, required, will be used as identifier/key
-   * =@fields= - Array of field names, optional. This fields are fetched out of the db
-Return: =( %result )= Result, a hash with each fetched field-name as key
+   * =$fields= - reference on an array of field names, optional. This fields are fetched out of the db
+   * =$checkAccess= if this is zero, access is not checked
+Return: =( %result )= Result, a hash with each fetched field-name as ke
 
 if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome you call it :
-<pre>my %result getValues("System",'WebHome',('samplefield1','samplefield2')); accessing results this way print %result-&gt;{'bar'}; </pre>
+<pre>my %result getValues("System",'WebHome',('samplefield1','samplefield2'));
+accessing results this way
+print %result->{'bar'};
+</pre>
 
----+++ updateValues( $web, $topic, $fiedValuePairs ) -&gt; ( )
 
-get values for out of the database
+---+++ updateValues( $web, $topic, $fiedValuePairs  ) -> ( )
+
+get values for out of the database 
    * =$web= - Web name, required, will be used as table
    * =$topic= Topic name, required, will be used as identifier/key
    * =$fiedValuePairs= reference to a hash, which has the field-name as key and the hash-value as field-value
+   * =$checkAccess= if this is zero, access is not checked
 Return: -
 
 if you want to update fields ('samplefield1','samplefield2') from System.WebHome you call it :
-<pre>my %pairs; %pairs-&gt;{'samplefield1'} = 20; %pairs-&gt;{'samplefield2'} = "myvalue1"; # Attention, you must use a reference! updateValues("System",'WebHome',\%pairs); </pre>
+<pre>
+my %pairs;
+%pairs->{'samplefield1'} = 20;
+%pairs->{'samplefield2'} = "myvalue1";
+# Attention, you must use a reference!
+updateValues("System",'WebHome',\%pairs);
+</pre>
 
----+++ createdb rest handler
+---+++ deleteEntry( $web, $topic  ) -> ( )
 
-if you want to create a initial table for a web, where informations can be stored for topics, you got to run this rest handler to initialize/create it. The query defined on topic !DBConnectorPluginCreateTableQuery is used as a template for the query.
+deletes an entry out of the database $web, identiefied by $topic 
+   * =$web= - Web name, required, will be used as table
+   * =$topic= Topic name, required, will be used as identifier/key
+
+---+++ _createDB( $session  ) -> ( )
+
+if you want to create a initial table for a web, where informations can be stored for topics, you got to run this rest handler to initialize/create it. The query defined on topic Syste.DBConnectorPluginCreateTableQuery is used as a template for the query.
    * %TABLENAME% gets expanded to the corresponding Web, when you create the table;
    * %TOPICNAME% gets expanded to the topic. This should be actually always be a existing topic. In normal cases, this value is not needed in the template#
    * %DBCONTABLEKEYFIELD% gets expanded to the primary key which is defined in the Configuration-Center $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField}
-__you can disallow the creation of table by unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center__ 
-
+<em>_you can disallow the creatinof table with unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center _</em>
 you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
-
-__Attention: If the table exists already, it will not be touched. No data will be erase or even a other table created__
-
----+++ sendQry( $query  ) -> ( $results)
-
-use this method to simply run querys on the database. You get a result like described by getValues 
-   * $query Complete SQL query;
-Return: returning a reference on an hash which has an integer-key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
 
 
 ---++ Installation instructions
    * just use the installer attached to the topic or even easier, use the configure-system/Extension to easy install it trough an user-interface
 
 ---+++ Configuration
-   * Use the Configuration Center ( bin/configure ) to configure the driver you want to use, the DSN and user / password
+   * Use the Configuration Center ( bin/configure ) to configure the driver you want to use, the DSN. Decide if you want links to be auto updated, if a topic gets removed and whic webs should be searched for such topic-references
 
 ---+++ Optional: Create table
    1 check this [[DBConnectorPluginCreateTableQuery][topic]] to see, which query is used to create the table for a web, where information is stored
    1 click [[%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=System.WebHome][here]] to create a test table for the System-Web
-   1 no you can query the database with update and get queries like described abo
-__Note:__ You do not need to install anything on the browser to use this Plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
+   1 now you can query the database with update and get queries like described above
+__Note:__ You do not need to install anything on the browser to use this plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
 
 ---++ !ToDo
-   * provide easy way to remove values
    * provide easy way to set fields for a topic to the default-values
-   * Build an example-application
    * auto-creating of tables for all webs and stuff like that
-   * Add "onRename" and "onMove" and "onRemove" handler to keep the whole thing sync
+
 |  Plugin Author: | Foswiki:Main.EugenMayer |
 |  Copyright: | &copy; Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Plugin Version: | 15 Dez 2008 (V0.1) |
+|  Plugin Version: | 16 Dez 2008 (V0.2) |
 |  Change History: | <!-- versions below in reverse order --> |
+|  16 Dez 2008: | extended functionality to update references(links) on topics, when this topcis are renamed. Tested, bugixed. |
 |  15 Dez 2008: | initial release |
 |  Foswiki Dependency: | |
 |  CPAN Dependencies: | DBI |

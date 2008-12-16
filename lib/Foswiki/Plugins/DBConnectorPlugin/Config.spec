@@ -25,7 +25,7 @@ $Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnInvolveFiedlsList} = "subnavig
 
 # **STRING**
 # semicolon separated list of fields to include when updating links
-$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList} = "*";
+$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList} = "Main;System";
 
 # <h2>Logging</h2>
 # **BOOLEAN**

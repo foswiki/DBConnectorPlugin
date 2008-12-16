@@ -53,6 +53,7 @@ our $DBC_con;
 our $TableKeyField;
 our $curWeb;
 our $curTopic;
+our $curUser;
 
 sub initPlugin {
     my( $topic, $web, $user, $installWeb ) = @_;
@@ -64,46 +65,8 @@ sub initPlugin {
     _connect();
     $curWeb = $web;
     $curTopic = $topic;
+    $curUser = $user;
     return 1;
-}
-
-
-sub _connect {
-	my $driver = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{driverPackage};	
-	eval "require $driver;";
-
-    my $dsn = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{dsn};
-    my $workingarea = Foswiki::Func::getWorkArea("DBConnectorPlugin");
-    $dsn =~ s/%WORKINGAREA%/$workingarea/im;
-    
-    if(!DBI->parse_dsn($dsn)) {
-    	_warn("the given DSN( $Foswiki::cfg{Plugins}{DBConnectorPlugin}{dsn} ) is not parseable. Is it correct: $dsn");
-    	return undef;
-    }
-    _debug("connecting to $dsn..");
-    $DBC_con = DBI->connect(
-        $dsn, "","",
-        {
-        #RaiseError => 1,
-        #PrintError => 1,
-        FetchHashKeyName => NAME_lc =>
-        @_
-        }
-    );
-    unless (defined $DBC_con) {
-    	my $error = "DBConnector could not connvet to $driver, error: $DBI::errstr";
-    	_debug($error);    	   
-        throw Error::Simple($error);
-    }        
-    _debug("connection successfully");
-    #return $DBC_con;
-}
-
-sub _disconnect
-{
-	_debug("disconnecting");	
-    # diconnect
-    $DBC_con->disconnect;
 }
 
 =begin TML
@@ -113,7 +76,8 @@ sub _disconnect
 get values for out of the database 
    * =$web= - Web name, required, will be used as table
    * =$topic= Topic name, required, will be used as identifier/key
-   * =@fields= - Array of field names, optional. This fields are fetched out of the db
+   * =$fields= - reference on an array of field names, optional. This fields are fetched out of the db
+   * =$checkAccess= if this is zero, access is not checked
 Return: =( %result )= Result, a hash with each fetched field-name as ke
 
 if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome you call it :
@@ -123,8 +87,17 @@ print %result->{'bar'};
 </pre>
 =cut
 sub getValues{
-	my ( $web, $topic, @fields ) = @_;
+	my $web = shift;
+	my $topic = shift;
+	my $fields = shift;
+	my $checkAccess = shift || 1;
+	my @fields = @{$fields};
 	_debug("Getting values for$web.Topic - fields:", @fields);
+	if($checkAccess && !_hasAccess("VIEW")) {
+        # no access;
+        return;     
+    }
+    
 	if (@fields < 1) {
 		#_warn("could not get values from $web.$topic because no fields given");		
 		#return undef;
@@ -159,6 +132,7 @@ get values for out of the database
    * =$web= - Web name, required, will be used as table
    * =$topic= Topic name, required, will be used as identifier/key
    * =$fiedValuePairs= reference to a hash, which has the field-name as key and the hash-value as field-value
+   * =$checkAccess= if this is zero, access is not checked
 Return: -
 
 if you want to update fields ('samplefield1','samplefield2') from System.WebHome you call it :
@@ -171,8 +145,15 @@ updateValues("System",'WebHome',\%pairs);
 </pre>
 =cut
 sub updateValues {
-	my ( $web, $topic, $fiedValuePairs ) = @_;	
-    _debug("Updating values inserted",keys %{$fiedValuePairs});
+	my $web = shift;
+    my $topic = shift;
+    my $fiedValuePairs = shift;
+    my $checkAccess = shift || 1;
+	_debug("Updating values inserted",keys %{$fiedValuePairs});
+    if($checkAccess && !_hasAccess("CHANGE")) {
+        # no access;
+        return undef;     
+    }
     _createEntryForTopicIfNotExitent($web,$topic);	
 	# craete a field list with placeholder(?), while each field is surrounded by `
 	my $values ="`". join("`=?,`", keys %{$fiedValuePairs}) . "`=?";	
@@ -180,8 +161,12 @@ sub updateValues {
 
     _debug("Query: $qry");
     my $qryobj = $DBC_con->prepare($qry);
+    unless ($qryobj) { 
+    	_warn("could not prepare qry ($qry), table missing? \nerror:".$DBC_con->errstr);
+    	return;
+    }
     # now insert the values for the placeholders into the query
-    $qryobj->execute(values %{$fiedValuePairs}) or _warn("could not insert values for $web.$topic".$qryobj->err);
+    $qryobj->execute(values %{$fiedValuePairs}) or _warn("could not insert values for $web.$topic \nerror:".$qryobj->err);
     $qryobj->finish();
     _debug("Values upated");
 }
@@ -190,32 +175,16 @@ sub _createEntryForTopicIfNotExitent {
 	my ( $web, $topic ) = @_;
 	_debug("Creating topic entry if not existent");
 	my $created = 0;
-	if(!getValues($web,$topic,("topic_id"))) {
-		$created = $DBC_con->do( "INSERT into $web (`$TableKeyField`) VALUES ('$topic')" );		
+	if(!getValues($web,$topic,["topic_id"],0)) {
+		my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
+		_debug("Inserting values: $qry");
+		$created = $DBC_con->do( $qry);		
 	}
 	# somehow this is not working. Any ideas?
 	# my $created = $DBC_con->do( "IF NOT EXISTS (SELECT `$TableKeyField` FROM $web WHERE `$TableKeyField` = $topic' ) begin INSERT $web set (`$TableKeyField`) VALUES ('$topic') end ELSE BEGIN END" );	
 }
 
 
-sub _debug
-{   
-    return if !$Foswiki::cfg{Plugins}{DBConnectorPlugin}{Debug};
-    my ($message,@param) = @_;
-
-    TWiki::Func::writeDebug("[DBConnectorPlugin]:".$message ) ;
-    if(@param > 0) {
-        foreach my $p (@param) {
-            TWiki::Func::writeDebug("[DBConnectorPlugin]://Param:".$p ) ;           
-        }
-    }
-}
-
-sub _warn
-{
-    my $message = shift;    
-    return TWiki::Func::writeWarning( $message );
-}
 
 =begin TML
 
@@ -240,7 +209,7 @@ sub _createDB {
     my ($meta, $qrytext ) = Foswiki::Func::readTopic( "System", "DBConnectorPluginCreateTableQuery" );
     
     if($qrytext eq "") {
-    	_warn "could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery:";
+    	_warn("could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery:");
         throw Foswiki::OopsException( 'attention',
                                        def => "generic",
                                        web => $web,
@@ -255,12 +224,12 @@ sub _createDB {
     $qrytext =~ s/%TOPICNAME%/$topic/im;
     $qrytext =~ s/%DBCONTABLEKEYFIELD%/$TableKeyField/im;
 
-    if(!getValues($web,$topic,($TableKeyField))) {
+    if(!getValues($web,$topic,[$TableKeyField],0)) {
          sendQry ($qrytext );
     }
     
     if($DBC_con->errstr ne "") {
-    	_warn "could not create table $web, error:".$DBC_con->errstr;
+    	_warn("could not create table $web, error:".$DBC_con->errstr);
     	throw Foswiki::OopsException( 'attention',
                                        def => "generic",
                                        web => $web,
@@ -290,20 +259,186 @@ sub _createDB {
 
 use this method to simply run querys on the database. You get a result like described by getValues 
    * $query Complete SQL query;
-Return: returning a reference on an hash which has an integer-key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
+Return: returning a hash which has an the topic-identiefer as key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
 =cut
 
 sub sendQry {
     my $qry = shift;
+    # TODO: add access control? how?
     my $qryobj = $DBC_con->prepare($qry);
+    my $results;
+    unless ($qryobj) { 
+        _warn("could not prepare qry ($qry), table missing? \nerror:".$DBC_con->errstr);
+        return $results;
+    }
+    
     _debug("Runnging direct query '$qry'");
     # now insert the values for the placeholders into the query
     $qryobj->execute() or _warn("could not run direct query".$qry);
-    my $results = $qryobj->fetchall_hashref(); 
+    $results = $qryobj->fetchall_hashref($TableKeyField); 
     # returning the values as {fieldname} = value pairs. If no row could be fetched, this result is undef
     _debug("Returned values:", values(%{ $results }));
     $qryobj->finish;
-    return $results;
+    return %{$results};
+}
+
+sub deleteEntry{
+	my $web = shift;
+    my $topic = shift;
+    my $checkAccess = shift || 1;
+    if($checkAccess && !_hasAccess("CHANGE")) {
+        # no access;
+        return;     
+    }
+
+	$DBC_con->do("DELETE from `$web` where `$TableKeyField`='$topic'");	
+}
+
+
+sub afterRenameHandler {
+    my ( $oldWeb, $oldTopic, $oldAttachment,
+         $newWeb, $newTopic, $newAttachment ) = @_;
+    
+    # we need to move the whole entry to a other table ( as each web has its own table)
+    if($oldWeb ne $newWeb) {
+        # get the row with all fields
+        my %oldValues = getValues($oldWeb,$oldTopic,["*"]);
+        # delete entry in old table
+        deleteEntry($oldWeb,$oldTopic);
+        # create new entry om the new table ( for the new web)
+        %oldValues->{$TableKeyField} = $newTopic;
+        updateValues($newWeb,$newTopic, \%oldValues,0);       
+    }
+    # just update the primary key to the new value
+    else {
+        my %values;     
+        %values->{$TableKeyField} = $newTopic; 
+        updateValues($oldWeb,$oldTopic, \%values,0);      
+    }
+    my $updateOnChangeWebList = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList};
+    # is the handler disabled ( so empty )
+    if($updateOnChangeWebList ne "") {
+        my @webs;
+        # no, so lets update the webs
+        # * is for "all"
+        if($updateOnChangeWebList eq "*") {
+            @webs = Foswiki::Func::getListOfWebs();         
+        }
+        # its a ; separated list of webs
+        else {
+            @webs = split(";",$updateOnChangeWebList );
+            
+        } 
+        
+        _updateLinksInWebs($oldWeb, $oldTopic, $newWeb, $newTopic,\@webs);       
+    }    
+}
+
+sub _updateLinksInWebs {
+    my ($oldWeb, $oldTopic, $newWeb, $newTopic,$toUpdateWebs) = @_;
+    my @webs = @{$toUpdateWebs};
+    my @fieldlist = split(";",$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnInvolveFiedlsList});
+    my $pattern = '%'.$oldTopic.'%';
+    for(my $i = 0; $i < @fieldlist;$i++) {
+        @fieldlist[$i] = "`".@fieldlist[$i]."` LIKE '$pattern'";      
+    }
+    foreach my $curWeb (@webs) {
+        #get all entries needing an update
+        my %topicsNeedUpdates = sendQry("SELECT * FROM $curWeb WHERE ".join(" OR ", @fieldlist));
+        
+        # go trough all topics needs an update
+        if(%topicsNeedUpdates) {
+	        foreach my $topicid (keys %topicsNeedUpdates) {
+	            # check all fields and update its data accordningly
+	            foreach my $field (keys %{%topicsNeedUpdates->{$topicid}}) {
+	            	_debug("fixing links in:\n".%topicsNeedUpdates->{$topicid}{$field});
+	                %topicsNeedUpdates->{$topicid}{$field} = _updateLinksInString($oldWeb,$oldTopic, $newWeb, $newTopic,%topicsNeedUpdates->{$topicid}{$field});
+	                _debug("fixed string is:\n".%topicsNeedUpdates->{$topicid}{$field});
+	            }
+	            # update the entry in the DB. DB name is the current web, the identifier 
+	            updateValues($curWeb,$topicid, \%topicsNeedUpdates->{$topicid},0);              
+	        }  
+        }     
+    }
+}
+
+sub _updateLinksInString {
+    my ($oldWeb, $oldTopic, $newWeb, $newTopic, $string) = @_;
+    # TODO: this one should be checked for really working properly -> unit test
+    $string =~ s/$oldWeb.$oldTopic/$newWeb.$newTopic/g;
+    $string =~ s/$oldWeb\/$oldTopic/$newWeb\/$newTopic/g;
+    $string =~ s/$oldTopic/$newTopic/g;
+    return $string;
+}
+
+sub _debug
+{   
+    return if !$Foswiki::cfg{Plugins}{DBConnectorPlugin}{Debug};
+    my ($message,@param) = @_;
+
+    TWiki::Func::writeDebug("[DBConnectorPlugin]:".$message ) ;
+    if(@param > 0) {
+        foreach my $p (@param) {
+            TWiki::Func::writeDebug("[DBConnectorPlugin]://Param:".$p ) ;           
+        }
+    }
+    TWiki::Func::writeDebug("[DBConnectorPlugin]:----------\n" ) ;
+}
+
+sub _warn
+{
+    my $message = shift;  
+    _debug($message);  
+    return TWiki::Func::writeWarning( $message );
+}
+
+sub _hasAccess{
+    my ($web,$topic, $type);
+    if(Foswiki::Func::checkAccessPermission($type, $curUser, undef, $topic, $web, undef)) {
+        # has acess
+       return 1;    
+    }   
+    # else  
+    _warn("Warning, $curUser tried to get access to a topic without having proper permissions( $type )");
+    return 0;   
+}
+
+sub _connect {
+    my $driver = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{driverPackage};  
+    eval "require $driver;";
+
+    my $dsn = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{dsn};
+    my $workingarea = Foswiki::Func::getWorkArea("DBConnectorPlugin");
+    $dsn =~ s/%WORKINGAREA%/$workingarea/im;
+    
+    if(!DBI->parse_dsn($dsn)) {
+        _warn("the given DSN( $Foswiki::cfg{Plugins}{DBConnectorPlugin}{dsn} ) is not parseable. Is it correct: $dsn");
+        return undef;
+    }
+    _debug("connecting to $dsn..");
+    $DBC_con = DBI->connect(
+        $dsn, "","",
+        {
+        #RaiseError => 1,
+        #PrintError => 1,
+        FetchHashKeyName => NAME_lc =>
+        @_
+        }
+    );
+    unless (defined $DBC_con) {
+        my $error = "DBConnector could not connvet to $driver, error: $DBI::errstr";
+        _debug($error);        
+        throw Error::Simple($error);
+    }        
+    _debug("connection successfully");
+    
+}
+
+sub _disconnect
+{
+    _debug("disconnecting");    
+    # diconnect
+    $DBC_con->disconnect;
 }
 
 1;

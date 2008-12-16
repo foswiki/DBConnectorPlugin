@@ -1,7 +1,7 @@
 %META:TOPICINFO{author="EugenMayer" date="1229338237" format="1.1" reprev="1.2" version="1.2"}%
 ---+ !DBConnectorPlugin
-Lets your plugins easy use a DB-backed to store additional topic-data you don`t want or even can`t store in the rcs 
-   * Set SHORTDESCRIPTION = Lets your plugins easy use a DB-backed to store additional topic-data you don`t want or even can`t store in the rcs 
+Enables you to use simple methods to store and read data for topics, you dont want or cant store in the RCS 
+   * Set SHORTDESCRIPTION = Enables you to use simple methods to store and read data for topics, you dont want or cant store in the RCS 
 
 %TOC%
 
@@ -40,7 +40,7 @@ if you want to update fields ('samplefield1','samplefield2') from System.WebHome
 
 ---+++ createdb rest handler
 
-if you want to create a initial table for a web, where informations can be stored for topics, you got to run this rest handler to initialize/create it. The query defined on topic Syste.DBConnectorPluginCreateTableQuery is used as a template for the query.
+if you want to create a initial table for a web, where informations can be stored for topics, you got to run this rest handler to initialize/create it. The query defined on topic !DBConnectorPluginCreateTableQuery is used as a template for the query.
    * %TABLENAME% gets expanded to the corresponding Web, when you create the table;
    * %TOPICNAME% gets expanded to the topic. This should be actually always be a existing topic. In normal cases, this value is not needed in the template#
    * %DBCONTABLEKEYFIELD% gets expanded to the primary key which is defined in the Configuration-Center $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField}
@@ -49,13 +49,15 @@ __you can disallow the creation of table by unchecking $Foswiki::cfg{Plugins}{DB
 you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
 
+__Attention: If the table exists already, it will not be touched. No data will be erase or even a other table created__
+
 ---+++ sendQry( $query  ) -> ( $results)
 
 use this method to simply run querys on the database. You get a result like described by getValues 
    * $query Complete SQL query;
 Return: returning a reference on an hash which has an integer-key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
 
-__Attention: If the table exists already, it will not be touched. No data will be erase or even a other table created__
+
 ---++ Installation instructions
    * just use the installer attached to the topic or even easier, use the configure-system/Extension to easy install it trough an user-interface
 
@@ -68,21 +70,21 @@ __Attention: If the table exists already, it will not be touched. No data will b
    1 no you can query the database with update and get queries like described abo
 __Note:__ You do not need to install anything on the browser to use this Plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
 
----++ ToDo
+---++ !ToDo
    * provide easy way to remove values
    * provide easy way to set fields for a topic to the default-values
    * Build an example-application
    * auto-creating of tables for all webs and stuff like that
-   
+   * Add "onRename" and "onMove" and "onRemove" handler to keep the whole thing sync
 |  Plugin Author: | Foswiki:Main.EugenMayer |
-|  Copyright: | � 2006, Impressive.media |
+|  Copyright: | &copy; Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
 |  Plugin Version: | 15 Dez 2008 (V0.1) |
 |  Change History: | <!-- versions below in reverse order --> |
 |  15 Dez 2008: | initial release |
 |  Foswiki Dependency: | |
 |  CPAN Dependencies: | DBI |
-|  Other Dependencies: | your backed, e.g. DBD::SQLite |
+|  Other Dependencies: | your backend, e.g. DBD::SQLite |
 |  Perl Version: | 5.005 |
 |  Add-on Home: | http://foswiki.org/Extensions/%TOPIC% |
 |  Feedback: | http://foswiki.org/Extensions/%TOPIC%Dev |

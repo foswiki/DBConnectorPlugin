@@ -1,4 +1,5 @@
 lib/Foswiki/Plugins/DBConnectorPlugin.pm Plugin Perl module
 lib/Foswiki/Plugins/DBConnectorPlugin/Config.spec
 data/System/DBConnectorPlugin.txt Plugin topic
+templates/editdbfield.tmpl Template
 data/System/DBConnectorPluginCreateTableQuery.txt Plugin topic

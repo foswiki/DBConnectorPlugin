@@ -21,11 +21,11 @@ $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} = 1;
 # **STRING**
 # If a topic gets renamed, the DBConnector searches all tables you specify here to update the links in the fields, to keep them uptodata.
 # Leave _Empty_ for skipping ( performance ), use wildcard * for updating all webs or use a semicolon separated list
-$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnInvolveFiedlsList} = "subnavigation";
+$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnInvolveFiedlsList} = "samplefield2";
 
 # **STRING**
 # semicolon separated list of fields to include when updating links
-$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList} = "Main;System";
+$Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList} = "*";
 
 # <h2>Logging</h2>
 # **BOOLEAN**

@@ -61,6 +61,10 @@ sub initPlugin {
     my( $topic, $web, $user, $installWeb ) = @_;
     
     Foswiki::Func::registerRESTHandler('createdb', \&_createDB) if($Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb});
+    Foswiki::Func::registerRESTHandler('savefielddata', \&_fieldDataSaver);
+    Foswiki::Func::registerRESTHandler('editfield', \&_showFieldEditor);
+    Foswiki::Func::registerTagHandler( 'EDITFIELDBUTTON', \&_showFieldEditorButton );
+    
      
     $TableKeyField = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField};
     # Plugin correctly initialized
@@ -463,6 +467,117 @@ sub _disconnect
     $DBC_con->disconnect;
 }
 
+sub _fieldDataSaver{
+    my $session = shift;
+        
+    my $web = $session->{webName};
+    my $topic = $session->{topicName};
+    my $query = $session->{cgiQuery};
+    my $data = $query->param("text");
+    my $fieldname = $query->param("dbfieldname");
+    my $redirectTo = $query->param("redirectto");
+    my $cancel = $query->param("action_cancel") || "";
+    
+    # redirect back to the topic, if canceled
+
+     
+    if($cancel ne "") {
+    	$session->redirect($redirectTo,0);
+    	return 1;
+    }
+    
+        
+    # checking lease   
+    my ( $oopsUrl, $loginName, $unlockTime ) = Foswiki::Func::checkTopicEditLock($web,$topic); 
+    if ($unlockTime > 0) {
+        $session->redirect($oopsUrl,0);     
+    }   
+    
+    my %pairs;    
+    %pairs->{$fieldname} = $data;
+    # save and check access-rights
+    my %result = Foswiki::Plugins::DBConnectorPlugin::updateValues($web, $topic, \%pairs,1);
+    # ok we saved an are done, lets clear the lock
+    Foswiki::Func::setTopicEditLock($web,$topic,0);
+    $session->redirect($redirectTo,0);  
+}
+
+sub _showFieldEditor{
+    my $session = shift;    
+    my $web = $session->{webName};
+    my $topic = $session->{topicName};  
+    my $query = $session->{cgiQuery};
+    
+    my $fieldname = $query->param("dbfieldname");
+    my $skin = $query->param("skin") || $session->getSkin();
+    my $type = $query->param("type") || "";
+    # REMOVE ME!!!!!!!! DEBUG
+    Foswiki::Func::setTopicEditLock($web,$topic,0);
+    # checking lease   
+    my ( $oopsUrl, $loginName, $unlockTime ) = Foswiki::Func::checkTopicEditLock($web,$topic); 
+    if ($unlockTime > 0) {
+        $session->redirect($oopsUrl,0);     
+    }   
+    
+    # TODO: messages?
+    my $message = "";
+    # TODO: get parent
+    my $theParent = "";
+    # TODO : support other redirects?
+    my $redirectTo = Foswiki::Func::getScriptUrl($web,$topic,"view");
+
+    # read and check access rights
+    my %result = Foswiki::Plugins::DBConnectorPlugin::getValues($web,$topic,[$fieldname],0);
+    my $fieldvalue =  Foswiki::entityEncode($result{$fieldname});
+    
+    my $tmpl = $session->templates->readTemplate( "editdbfield".$type , $skin );
+    
+    # clear
+    $tmpl =~ s/%FORMFIELDS%//g;
+    $tmpl =~ s/%FORMTEMPLATE%//go;
+    $tmpl =~ s/%NEWTOPIC%//;
+    $tmpl =~ s/%ORIGINALREV%/0/g;    
+    
+    # prepare save action
+    $tmpl =~ s/%PLUGIN%/DBConnectorPlugin/go;
+    $tmpl =~ s/%RESTHANDLERNAME%/savefielddata/go;
+    $tmpl =~ s/%DBFIELDNAME%/$fieldname/go;
+    
+    # expand some vars
+    $tmpl =~ s/%TOPICPARENT%/$theParent/;        
+    $tmpl = $session->handleCommonTags( $tmpl, $web, $topic, undef );    
+    $tmpl = $session->renderer->getRenderedVersion( $tmpl, $web, $topic );    
+    $tmpl =~ s/%TEXT%/$fieldvalue/;
+    # page title
+
+    $tmpl =~ s/%CUSTOMPAGETITLE%/: Editing field $fieldname/g;
+    $tmpl =~ s/%ACTIONTITLE%/Editing field $fieldname/;
+    
+    
+    # message to the user
+    $tmpl =~ s/%EDITOR_MESSAGE%/$message/go;
+    
+    # later redirect to    
+    $tmpl =~ s/%REDIRECTTO%/$redirectTo/;
+    
+    # lock the tables. We use this because we have no own lock
+    Foswiki::Func::setTopicEditLock($web,$topic,1);    
+    return $tmpl;
+    #$session->writeCompletePage( $tmpl, 'Edit database field', "text/html");    
+}
+
+sub _showFieldEditorButton {
+	my($this, $params, $topic, $web) = @_;
+    $web = $params->{'web'} || $web;
+    $topic =  $params->{'topic'} || $topic;
+    my $fieldname = $params->{'field'} || "";
+    my $buttonName = $params->{'buttonName'} || "Edit field $fieldname";
+    my $type = $params->{'type'} || "";
+    
+    return "error, no field given" if ($fieldname eq "");
+    
+    return "[[/bin/rest/$pluginName/editfield?topic=$web.$topic&dbfieldname=$fieldname&type=$type][$buttonName]]";    
+}
 
 1;
 # vim: ft=perl foldmethod=marker

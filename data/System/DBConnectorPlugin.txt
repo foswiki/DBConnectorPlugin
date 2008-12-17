@@ -24,8 +24,11 @@ You can also look at [[DBConnectorPluginCreateTableQuery][topic]] to see, which 
 
 ---+++ Example application
 You are alreay using a example application, because anything is included in this plugin.
-With the build in Field-Editor, you can just *use this link* to *edit* one field of the example database, when you have installed it:
-%EDITFIELDBUTTON{ field="samplefield2" }%
+With the build in Field-Editor, you can just *use this link* to *edit* one field of the example database, when you have installed it:%BR%
+%BR%
+| *MACRO EXAMPLE* | *MEANING* | *LIVE DEMO* |
+| !%EDITFIELDBUTTON{ field="samplefield2" }% | displays the edit button : | %EDITFIELDBUTTON{ field="samplefield2" }% |
+| !%DISPLAYDBFIELD{ field="samplefield2" }% | you display the current value | %DISPLAYDBFIELD{ field="samplefield2" }% |
 
 The plugin TopicSpecificNavigationPlugin is a good and simple example on how to use DBConnectorPlugin
 
@@ -34,15 +37,23 @@ The plugin TopicSpecificNavigationPlugin is a good and simple example on how to 
 This is much the same thing else with other templates. The Field Editor template (*editdbfield.tmpl*) is completely based on the edit.tmpl. The editor respects skins, so if you create a new *editdbfield.yourskin.tmpl*, you will be able to customize the Editors Look&Feel
 %BR%. In Addition, you can use editdbfieldYOURTYPE.yourskin.tmpl to define different editing modes depending on a field type, you invoke the editor with.
 
----+++ Edit-Button for Field-Editr
-With the macrot %EDITFIELDBUTTON% you can let apear a button for editing a field with the Field-Editr
+---+++ Edit-Button for Field-Editor
+With the macro !%EDITFIELDBUTTON% you can let apear a button for editing a field with the Field-Editr
 | *Parameter* | *Default* | *Description* |
 | _web_  | Current web | Sets the web of the topic, where the topic is located |
 | _topic_ | Current topic | Sets the topic name of which you want to edit the field |
 | _field_ | - | *required* Name of the field you want to edit |
 | _type_ | "" | optional Type of the field. This is used to use different edit templates. Look *Customizing Field-Editor User Interface* for informations|
-| _buttonName_ or | $field | Sets the name of the button, which will be displayed to the user |
-
+| _buttonName_ | $field | Sets the name of the button, which will be displayed to the user |
+*Example:* !%EDITFIELDBUTTON{ field="samplefield2" }% -> %EDITFIELDBUTTON{ field="samplefield2" }%
+---+++ Display a value in a topic
+With the macro !%DISPLAYDBFIELD% you can let display the value of a field in a topic
+| *Parameter* | *Default* | *Description* |
+| _web_  | Current web | Sets the web of the topic, where the topic is located |
+| _topic_ | Current topic | Sets the topic name of which you want to display the field |
+| _field_ | - | *required* Name of the field you want to display |
+| _format_ | _field_ | here you can use a format string, while !%VALUE% get replaced by the field value |
+*Example:* !%DISPLAYDBFIELD{ field="samplefield2" }% -> %DISPLAYDBFIELD{ field="samplefield2" }%
 ---++ Methods
 ---+++ getValues( $web, $topic, @fields ) -> ( %result )
 
@@ -93,6 +104,7 @@ if you want to create a initial table for a web, where informations can be store
 <em>_you can disallow the creatinof table with unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center _</em>
 you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
+*Attention*: Only admin user will be allowed to call this rest-handler
 
 
 ---++ Installation instructions
@@ -118,9 +130,9 @@ __Note:__ You do not need to install anything on the browser to use this plugin.
 |  Plugin Author: | Foswiki:Main.EugenMayer |
 |  Copyright: | &copy; Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Plugin Version: | 16 Dez 2008 (V0.3) |
+|  Plugin Version: | 17 Dez 2008 (V0.4) |
 |  Change History: | <!-- versions below in reverse order --> |
-|  17 Dez 2008: | * added access checks, so users can`t change data for a topic in the database, if they have CHANGE rights on the topic inf foswiki%BR% * Added default Field-Editor User Interface to edit fields of a topic with the WYSIWYG out of the box, respectfully added handler for that. This UI is build to be reused and is customizeable%BR% * Added locking/unlockin topics when fields are edited|
+|  17 Dez 2008: | * added access checks, so users can`t change data for a topic in the database, if they have CHANGE rights on the topic inf foswiki%BR% * Added default Field-Editor User Interface to edit fields of a topic with the WYSIWYG out of the box, respectfully added handler for that. This UI is build to be reused and is customizeable%BR% * Added locking/unlockin topics when fields are edited%BR% * Added Macro to show Edit-Button and to display Field-Values in topics%BR% * createDB is now more secure, only allowed to admins anymore|
 |  16 Dez 2008: | extended functionality to update references(links) on topics, when this topcis are renamed. Tested, bugixed. |
 |  15 Dez 2008: | initial release |
 |  Foswiki Dependency: | |

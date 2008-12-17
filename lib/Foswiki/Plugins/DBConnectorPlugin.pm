@@ -40,11 +40,11 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.2';
+$RELEASE = '0.4';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
-$SHORTDESCRIPTION = 'Provides a connection to a external DB to easy store editional topic-based data';
+$SHORTDESCRIPTION = 'Enables you to use simple methods to store and read data for topics. The Editor is included in the plugin - use it right away ';
 
 # Name of this Plugin, only used in this module
 $pluginName = 'DBConnectorPlugin';
@@ -64,6 +64,7 @@ sub initPlugin {
     Foswiki::Func::registerRESTHandler('savefielddata', \&_fieldDataSaver);
     Foswiki::Func::registerRESTHandler('editfield', \&_showFieldEditor);
     Foswiki::Func::registerTagHandler( 'EDITFIELDBUTTON', \&_showFieldEditorButton );
+    Foswiki::Func::registerTagHandler( 'DISPLAYDBFIELD', \&_displayFieldValue );
     
      
     $TableKeyField = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField};
@@ -121,7 +122,7 @@ sub getValues{
     
     unless ($qryobj) {
     	_warn("could not send query, maybe table missing?"); 
-    	return undef;
+    	return ();
     }
     $qryobj->execute() or _warn("could not send query: $qry, error:".$qryobj->err);    
     my $result = $qryobj->fetchrow_hashref();   
@@ -270,8 +271,20 @@ sub _createDB {
     my $web = $session->{webName};
     my $topic = $session->{topicName};
     _warn("Creating table for Web:$web");
-    my ($meta, $qrytext ) = Foswiki::Func::readTopic( "System", "DBConnectorPluginCreateTableQuery" );
     
+    if(!Foswiki::Func::isAnAdmin()) {
+    	_warn("Non-Admin user tried to run createDB. Disallowed");
+    	     throw Foswiki::OopsException( 'attention',
+                                       def => "generic",
+                                       web => $web,
+                                       topic => $topic,
+                       keep => 1,
+                                       params => [ "You are not allowed to create Databases, as you are not an admin","","",""] 
+                      );
+    	
+    }
+    
+    my ($meta, $qrytext ) = Foswiki::Func::readTopic( "System", "DBConnectorPluginCreateTableQuery" );
     if($qrytext eq "") {
     	_warn("could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery:");
         throw Foswiki::OopsException( 'attention',
@@ -279,7 +292,7 @@ sub _createDB {
                                        web => $web,
                                        topic => $topic,
                        keep => 1,
-                                       params => [ "could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery"] 
+                                       params => [ "could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery","","",""] 
                       );
     } 
 
@@ -579,5 +592,24 @@ sub _showFieldEditorButton {
     return "[[/bin/rest/$pluginName/editfield?topic=$web.$topic&dbfieldname=$fieldname&type=$type][$buttonName]]";    
 }
 
+sub _displayFieldValue {
+	my($this, $params, $topic, $web) = @_;
+    $web = $params->{'web'} || $web;
+    $topic =  $params->{'topic'} || $topic;
+    my $fieldname = $params->{'field'} || "";
+    my $format = $params->{'format'} || "";
+    
+    return "error, no field given" if ($fieldname eq "");
+    
+    my %result = getValues($web,$topic,[$fieldname],0);
+    return "not defined" if(!defined %result);
+    my $fieldvalue =  Foswiki::entityEncode($result{$fieldname});
+    if($format ne "") {
+    	$format =~ s/%VALUE%/$fieldvalue/g;
+    	return $format;
+    }
+    #else    
+    return $fieldvalue;  
+}
 1;
 # vim: ft=perl foldmethod=marker

@@ -73,19 +73,22 @@ print %result->{'bar'};
 </pre>
 
 
----+++ getValues( $web, $topic, @fields ) -> ( %result )
+---+++ updateValues( $web, $topic, $fiedValuePairs  ) -> ( )
 
 get values for out of the database 
    * =$web= - Web name, required, will be used as table
    * =$topic= Topic name, required, will be used as identifier/key
-   * =$fields= - reference on an array of field names, optional. This fields are fetched out of the db
+   * =$fiedValuePairs= reference to a hash, which has the field-name as key and the hash-value as field-value
    * =$checkAccess= if this is zero, access is not checked
-Return: =( %result )= Result, a hashref with each fetched field-name as ke
+Return: -
 
-if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome you call it :
-<pre>my $result getValues("System",'WebHome',('samplefield1','samplefield2'));
-accessing results this way
-print $result->{'bar'};
+if you want to update fields ('samplefield1','samplefield2') from System.WebHome you call it :
+<pre>
+my %pairs;
+%pairs->{'samplefield1'} = 20;
+%pairs->{'samplefield2'} = "myvalue1";
+# Attention, you must use a reference!
+updateValues("System",'WebHome',\%pairs);
 </pre>
 
 ---+++ deleteEntry( $web, $topic  ) -> ( )

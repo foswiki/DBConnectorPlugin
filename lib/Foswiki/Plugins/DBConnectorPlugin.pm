@@ -20,8 +20,6 @@ package Foswiki::Plugins::DBConnectorPlugin;
 # =========================
 use strict;
 use warnings;
-use Data::Dumper;
-use Digest::MD5 qw(md5_hex);
 use DBI;
 use Error qw(:try);
 
@@ -83,12 +81,12 @@ get values for out of the database
    * =$topic= Topic name, required, will be used as identifier/key
    * =$fields= - reference on an array of field names, optional. This fields are fetched out of the db
    * =$checkAccess= if this is zero, access is not checked
-Return: =( %result )= Result, a hash with each fetched field-name as ke
+Return: =( %result )= Result, a hashref with each fetched field-name as ke
 
 if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome you call it :
-<pre>my %result getValues("System",'WebHome',('samplefield1','samplefield2'));
+<pre>my $result getValues("System",'WebHome',('samplefield1','samplefield2'));
 accessing results this way
-print %result->{'bar'};
+print $result->{'bar'};
 </pre>
 
 =cut
@@ -119,7 +117,7 @@ sub getValues{
     
     unless ($qryobj) {
     	_warn("could not send query, maybe table missing?"); 
-    	return ();
+    	return;
     }
     $qryobj->execute() or _warn("could not send query: $qry, error:".$qryobj->err);    
     my $result = $qryobj->fetchrow_hashref();   
@@ -127,7 +125,7 @@ sub getValues{
     # returning the values as {fieldname} = value pairs. If no row could be fetched, this result is undef
     _debug("Returned values:", values(%{ $result }));
     $qryobj->finish;
-    return %{ $result };
+    return $result;
 }
 
 
@@ -340,12 +338,12 @@ sub afterRenameHandler {
     # we need to move the whole entry to a other table ( as each web has its own table)
     if($oldWeb ne $newWeb) {
         # get the row with all fields
-        my %oldValues = getValues($oldWeb,$oldTopic,["*"]);
+        my $oldValues = getValues($oldWeb,$oldTopic,["*"]);
         # delete entry in old table
         deleteEntry($oldWeb,$oldTopic);
         # create new entry om the new table ( for the new web)
-        $oldValues{$TableKeyField} = $newTopic;
-        updateValues($newWeb,$newTopic, \%oldValues,0);       
+        $oldValues->{$TableKeyField} = $newTopic;
+        updateValues($newWeb,$newTopic, $oldValues,0);       
     }
     # just update the primary key to the new value
     else {
@@ -540,8 +538,8 @@ sub _showFieldEditor{
     my $redirectTo = Foswiki::Func::getScriptUrl($web,$topic,"view");
 
     # read and check access rights
-    my %result = Foswiki::Plugins::DBConnectorPlugin::getValues($web,$topic,[$fieldname],0);
-    my $fieldvalue =  Foswiki::entityEncode($result{$fieldname});
+    my $result = getValues($web,$topic,[$fieldname],0);
+    my $fieldvalue =  Foswiki::entityEncode($result->{$fieldname});
     
     my $tmpl = $session->templates->readTemplate( "editdbfield".$type , $skin );
     
@@ -602,9 +600,9 @@ sub _displayFieldValue {
     
     return "error, no field given" if ($fieldname eq "");
     
-    my %result = getValues($web,$topic,[$fieldname],0);
-    return "not defined" if(!%result);
-    my $fieldvalue =  $result{$fieldname};
+    my $result = getValues($web,$topic,[$fieldname],0);
+    return "not defined" if(!$result);
+    my $fieldvalue =  $result->{$fieldname};
     if($raw) {
         $fieldvalue =  Foswiki::entityEncode($fieldvalue);
     } else {

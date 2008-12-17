@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl -wI.
-#
 # This script Copyright (c) 2008 Impressive.media 
 # and distributed under the GPL (see below)
 #
@@ -18,16 +16,14 @@
 # http://www.gnu.org/copyleft/gpl.html
 
 # =========================
-package Foswiki::Plugins::DBConnectorPlugin;    # change the package name and $pluginName!!!
+package Foswiki::Plugins::DBConnectorPlugin;
 # =========================
-# Always use strict to enforce variable scoping
 use strict;
+use warnings;
 use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
 use DBI;
 use Error qw(:try);
-
-
 
 # $VERSION is referred to by Foswiki, and is the only global variable that
 # *must* exist in this package.
@@ -55,7 +51,6 @@ our $TableKeyField;
 our $curWeb;
 our $curTopic;
 our $curUser;
-
 
 sub initPlugin {
     my( $topic, $web, $user, $installWeb ) = @_;
@@ -115,8 +110,8 @@ sub getValues{
 		# get all fields
 		@fields = ('*');	
 	}
-	my $fields = join(",",@fields);
-	my $qry = qq(SELECT $fields FROM `$web` where `$TableKeyField` = '$topic');	
+	my $fieldsString = join(",",@fields);
+	my $qry = qq(SELECT $fieldsString FROM `$web` where `$TableKeyField` = '$topic');	
 	_debug("Query: $qry");
     my $qryobj = $DBC_con->prepare($qry);
     
@@ -344,13 +339,13 @@ sub afterRenameHandler {
         # delete entry in old table
         deleteEntry($oldWeb,$oldTopic);
         # create new entry om the new table ( for the new web)
-        %oldValues->{$TableKeyField} = $newTopic;
+        $oldValues{$TableKeyField} = $newTopic;
         updateValues($newWeb,$newTopic, \%oldValues,0);       
     }
     # just update the primary key to the new value
     else {
         my %values;     
-        %values->{$TableKeyField} = $newTopic; 
+        $values{$TableKeyField} = $newTopic; 
         updateValues($oldWeb,$oldTopic, \%values,0);      
     }
     my $updateOnChangeWebList = $Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList};
@@ -390,10 +385,10 @@ sub _updateLinksInWebs {
         if(%topicsNeedUpdates) {
 	        foreach my $topicid (keys %topicsNeedUpdates) {
 	            # check all fields and update its data accordningly
-	            foreach my $field (keys %{%topicsNeedUpdates->{$topicid}}) {
-	            	_debug("fixing links in:\n".%topicsNeedUpdates->{$topicid}{$field});
-	                %topicsNeedUpdates->{$topicid}{$field} = _updateLinksInString($oldWeb,$oldTopic, $newWeb, $newTopic,%topicsNeedUpdates->{$topicid}{$field});
-	                _debug("fixed string is:\n".%topicsNeedUpdates->{$topicid}{$field});
+	            foreach my $field (keys %{$topicsNeedUpdates{$topicid}}) {
+	            	_debug("fixing links in:\n".$topicsNeedUpdates{$topicid}{$field});
+	                $topicsNeedUpdates{$topicid}{$field} = _updateLinksInString($oldWeb,$oldTopic, $newWeb, $newTopic,$topicsNeedUpdates{$topicid}{$field});
+	                _debug("fixed string is:\n".$topicsNeedUpdates{$topicid}{$field});
 	            }
 	            # update the entry in the DB. DB name is the current web, the identifier 
 	            updateValues($curWeb,$topicid, $topicsNeedUpdates{$topicid},0);              
@@ -507,7 +502,7 @@ sub _fieldDataSaver{
     }   
     
     my %pairs;    
-    %pairs->{$fieldname} = $data;
+    $pairs{$fieldname} = $data;
     # save and check access-rights
     my %result = Foswiki::Plugins::DBConnectorPlugin::updateValues($web, $topic, \%pairs,1);
     # ok we saved an are done, lets clear the lock
@@ -603,7 +598,7 @@ sub _displayFieldValue {
     return "error, no field given" if ($fieldname eq "");
     
     my %result = getValues($web,$topic,[$fieldname],0);
-    return "not defined" if(!defined %result);
+    return "not defined" if(!%result);
     my $fieldvalue =  $result{$fieldname};
     if($raw) {
         $fieldvalue =  Foswiki::entityEncode($fieldvalue);

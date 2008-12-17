@@ -44,6 +44,7 @@ With the macro !%EDITFIELDBUTTON% you can let apear a button for editing a field
 | _topic_ | Current topic | Sets the topic name of which you want to edit the field |
 | _field_ | - | *required* Name of the field you want to edit |
 | _type_ | "" | optional Type of the field. This is used to use different edit templates. Look *Customizing Field-Editor User Interface* for informations|
+
 | _buttonName_ | $field | Sets the name of the button, which will be displayed to the user |
 *Example:* !%EDITFIELDBUTTON{ field="samplefield2" }% -> %EDITFIELDBUTTON{ field="samplefield2" }%
 ---+++ Display a value in a topic
@@ -53,6 +54,7 @@ With the macro !%DISPLAYDBFIELD% you can let display the value of a field in a t
 | _topic_ | Current topic | Sets the topic name of which you want to display the field |
 | _field_ | - | *required* Name of the field you want to display |
 | _format_ | _field_ | here you can use a format string, while !%VALUE% get replaced by the field value |
+| _raw_ | 0 | if you set this to true, the result field will not be rendered, so no TML->HTML conversion |
 *Example:* !%DISPLAYDBFIELD{ field="samplefield2" }% -> %DISPLAYDBFIELD{ field="samplefield2" }%
 ---++ Methods
 ---+++ getValues( $web, $topic, @fields ) -> ( %result )

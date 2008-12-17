@@ -598,12 +598,18 @@ sub _displayFieldValue {
     $topic =  $params->{'topic'} || $topic;
     my $fieldname = $params->{'field'} || "";
     my $format = $params->{'format'} || "";
+    my $raw = $params->{'raw'} || 0;
     
     return "error, no field given" if ($fieldname eq "");
     
     my %result = getValues($web,$topic,[$fieldname],0);
     return "not defined" if(!defined %result);
-    my $fieldvalue =  Foswiki::entityEncode($result{$fieldname});
+    my $fieldvalue =  $result{$fieldname};
+    if($raw) {
+        $fieldvalue =  Foswiki::entityEncode($fieldvalue);
+    } else {
+        $fieldvalue = Foswiki::Func::renderText( $fieldvalue, $web);   
+    }
     if($format ne "") {
     	$format =~ s/%VALUE%/$fieldvalue/g;
     	return $format;

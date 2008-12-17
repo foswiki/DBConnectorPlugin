@@ -90,7 +90,9 @@ if you want to fetch fields ('samplefield1','samplefield2') from System.WebHome 
 accessing results this way
 print %result->{'bar'};
 </pre>
+
 =cut
+
 sub getValues{
 	my $web = shift;
 	my $topic = shift;
@@ -148,6 +150,7 @@ my %pairs;
 # Attention, you must use a reference!
 updateValues("System",'WebHome',\%pairs);
 </pre>
+
 =cut
 
 sub updateValues {
@@ -199,6 +202,7 @@ sub _createEntryForTopicIfNotExitent {
 use this method to simply run querys on the database. You get a result like described by getValues 
    * $query Complete SQL query;
 Return: returning a hash which has an the topic-identiefer as key for each row fetch, for each of this values a hash is stored, by {fieldname} = value like in getValues
+
 =cut
 
 sub sendQry {
@@ -260,6 +264,7 @@ you call the rest handler this way, creating a data for the web "TheWeb"
 <pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
 
 =cut
+
 sub _createDB {
     # TODO: test if there is allready a database, if yes, do not create anything and cancel
     my $session = shift;    

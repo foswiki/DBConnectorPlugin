@@ -44,6 +44,7 @@ With the macro !%EDITFIELDBUTTON% you can let apear a button for editing a field
 | _topic_ | Current topic | Sets the topic name of which you want to edit the field |
 | _field_ | - | *required* Name of the field you want to edit |
 | _type_ | "" | optional Type of the field. This is used to use different edit templates. Look *Customizing Field-Editor User Interface* for informations|
+| _format_ | "" | a string including %URL% which is used as the output, while %URL% is replaced with the edit-url |
 
 | _buttonName_ | $field | Sets the name of the button, which will be displayed to the user |
 *Example:* !%EDITFIELDBUTTON{ field="samplefield2" }% -> %EDITFIELDBUTTON{ field="samplefield2" }%
@@ -116,8 +117,15 @@ Decide if you want links to be auto updated, if a topic gets removed and which w
 
 ---+++ Optional: Create table
    1 check this [[DBConnectorPluginCreateTableQuery][topic]] to see, which query is used to create the table for a web, where information is stored
-   1 click [[%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=System.WebHome][here]] to create a test table for the System-Web
-   1 now you can query the database with update and get queries like described above
+   1 create test table
+   <form action="/bin/rest/DBConnectorPlugin/createdb?topic=%WEB%.%TOPIC%"" method="get">
+ 
+| Create table for: | <input type="text" name="targetWeb" value="%WEB%"> | |
+| Query from web | <input type="text" name="sourceWeb" value="%WEB%"> | |
+| Query to create table located in topic | <input type="text" name="sourceTopic" value="DBConnectorPluginCreateTableQuery"> | <input type="submit" name="Create Table" value="Create Table"> |
+</form>
+
+   1 now you can query the database with update and get querys like described above
 __Note:__ You do not need to install anything on the browser to use this plugin. The following instructions are for the administrator who installs the Plugin on the server where Foswiki is running.
 
 ---++ !ToDo
@@ -129,8 +137,9 @@ __Note:__ You do not need to install anything on the browser to use this plugin.
 |  Plugin Author: | Foswiki:Main.EugenMayer |
 |  Copyright: | &copy; Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Plugin Version: | 17 Dez 2008 (V0.4) |
+|  Plugin Version: | 18 Dez 2008 (V0.5) |
 |  Change History: | <!-- versions below in reverse order --> |
+|  17 Dez 2008: | * Fixed some bugs. Also disabled the locking, because if something is locked, and "i try anyway" the redirect is wrong%BR% * generalized createDB to be able to use other topics for creation of tables%BR% * added form on the plugin-topic to be easy able to create tables for webs|
 |  17 Dez 2008: | * added access checks, so users can`t change data for a topic in the database, if they have CHANGE rights on the topic inf foswiki%BR% * Added default Field-Editor User Interface to edit fields of a topic with the WYSIWYG out of the box, respectfully added handler for that. This UI is build to be reused and is customizeable%BR% * Added locking/unlockin topics when fields are edited%BR% * Added Macro to show Edit-Button and to display Field-Values in topics%BR% * createDB is now more secure, only allowed to admins anymore|
 |  16 Dez 2008: | extended functionality to update references(links) on topics, when this topcis are renamed. Tested, bugixed. |
 |  15 Dez 2008: | initial release |

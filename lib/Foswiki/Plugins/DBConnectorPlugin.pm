@@ -37,7 +37,7 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.4';
+$RELEASE = '0.5';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
@@ -127,7 +127,7 @@ sub getValues {
 
 	unless ($qryobj) {
 		_warn("could not send query, maybe table missing?");
-		return;
+		return undef;
 	}
 	$qryobj->execute()
 	  or _warn( "could not send query: $qry, error:" . $qryobj->err );
@@ -183,9 +183,7 @@ sub updateValues {
 	_debug("Query: $qry");
 	my $qryobj = eval { $DBC_con->prepare($qry) };
 	unless ($qryobj) {
-		_warn(  "could not prepare qry ("
-			  . $DBC_con->Statement()
-			  . "), table missing? \nerror:"
+		_warn(  "could not prepare qry, table missing? \nerror:"
 			  . $DBC_con->errstr );
 		return;
 	}
@@ -204,10 +202,14 @@ sub _createEntryForTopicIfNotExitent {
 	_debug("Creating topic entry if not existent");
 
 	my $created = 0;
-	if ( !getValues( $web, $topic, ["topic_id"], 0 ) ) {
+	my $result = getValues( $web, $topic, ["topic_id"], 0 );
+	if ( defined $result ) {
 		my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
 		_debug("Inserting values: $qry");
 		$created = $DBC_con->do($qry);
+	}
+	else {
+		_debug("no need to create, topic entry was there before");		
 	}
 
 # somehow this is not working. Any ideas?
@@ -287,11 +289,16 @@ you call the rest handler this way, creating a data for the web "TheWeb"
 =cut
 
 sub _createDB {
-
 # TODO: test if there is allready a database, if yes, do not create anything and cancel
 	my $session = shift;
+	# not used
 	my $web     = $session->{webName};
 	my $topic   = $session->{topicName};
+	my $query   = $session->{cgiQuery};
+	my $targetWeb  = $query->param("targetWeb");
+	my $srcWeb  = $query->param("sourceWeb");
+	my $srcTopic  = $query->param("sourceTopic");
+    
 	_warn("Creating table for Web:$web");
 
 	if ( !Foswiki::Func::isAnAdmin() ) {
@@ -313,10 +320,10 @@ sub _createDB {
 	}
 
 	my ( $meta, $qrytext ) =
-	  Foswiki::Func::readTopic( "System", "DBConnectorPluginCreateTableQuery" );
+	  Foswiki::Func::readTopic( "$srcWeb", "$srcTopic" );
 	if ( $qrytext eq "" ) {
 		_warn(
-"could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery:"
+"could not create table $targetWeb, no query defined in topic $srcWeb.$srcTopic:"
 		);
 		throw Foswiki::OopsException(
 			'attention',
@@ -325,7 +332,7 @@ sub _createDB {
 			topic  => $topic,
 			keep   => 1,
 			params => [
-"could not create table $web, no query defined in topic System.DBConnectorPluginCreateTableQuery",
+"could not create table $targetWeb, no query defined in topic $srcWeb.$srcTopic",
 				"",
 				"",
 				""
@@ -334,8 +341,8 @@ sub _createDB {
 	}
 
 	# expanding $WEB$ and $TOPIC$ and $TABLEKEYFIELD$
-	$qrytext =~ s/%TABLENAME%/$web/im;
-	$qrytext =~ s/%TOPICNAME%/$topic/im;
+	$qrytext =~ s/%TABLENAME%/$targetWeb/im;
+	$qrytext =~ s/%TOPICNAME%/WebHomee/im;
 	$qrytext =~ s/%DBCONTABLEKEYFIELD%/$TableKeyField/im;
 
 	if ( !getValues( $web, $topic, [$TableKeyField], 0 ) ) {
@@ -343,7 +350,7 @@ sub _createDB {
 	}
 
 	if ( $DBC_con->errstr ne "" ) {
-		_warn( "could not create table $web, error:" . $DBC_con->errstr );
+		_warn( "could not create table $targetWeb, error:" . $DBC_con->errstr );
 		throw Foswiki::OopsException(
 			'attention',
 			def    => "generic",
@@ -351,7 +358,7 @@ sub _createDB {
 			topic  => $topic,
 			keep   => 1,
 			params => [
-				"could not create table $web, error:" . $DBC_con->errstr,
+				"could not create table $targetWeb, error:" . $DBC_con->errstr,
 				"", "", ""
 			]
 		);
@@ -365,7 +372,7 @@ sub _createDB {
 		topic => $topic,
 		keep  => 1,
 		params =>
-		  [ "The table $web has been successfully created.", "", "", "" ]
+		  [ "The table $targetWeb has been successfully created.", "", "", "" ]
 	);
 
 	# bad as no feedback, other solutions?
@@ -600,16 +607,16 @@ sub _showFieldEditor {
 	my $skin      = $query->param("skin") || $session->getSkin();
 	my $type      = $query->param("type") || "";
 
-	# REMOVE ME!!!!!!!! DEBUG
-	Foswiki::Func::setTopicEditLock( $web, $topic, 0 );
-
+    # TODO: disabling lock check this way. We need to get the redirect right to have this working properly
+    Foswiki::Func::setTopicEditLock( $web, $topic, 0 );
+	
 	# checking lease
 	my ( $oopsUrl, $loginName, $unlockTime ) =
 	  Foswiki::Func::checkTopicEditLock( $web, $topic );
 	if ( $unlockTime > 0 ) {
 		$session->redirect( $oopsUrl, 0 );
 	}
-
+    
 	# TODO: messages?
 	my $message = "";
 
@@ -622,9 +629,9 @@ sub _showFieldEditor {
 	# read and check access rights
 	my $result = getValues( $web, $topic, [$fieldname], 0 );
 	my $fieldvalue = Foswiki::entityEncode( $result->{$fieldname} );
-
-	my $tmpl =
-	  $session->templates->readTemplate( "editdbfield" . $type, $skin );
+    my $templateName = "editdbfield"; 
+    $templateName .= "_$type" if $type ne "";
+	my $tmpl = $session->templates->readTemplate( $templateName, $skin );
 
 	# clear
 	$tmpl =~ s/%FORMFIELDS%//g;
@@ -653,12 +660,12 @@ sub _showFieldEditor {
 
 	# later redirect to
 	$tmpl =~ s/%REDIRECTTO%/$redirectTo/;
-
+    
+   $session->{plugins}
+      ->dispatch( 'beforeEditHandler', $fieldvalue, $topic, $web, undef );
 	# lock the tables. We use this because we have no own lock
 	Foswiki::Func::setTopicEditLock( $web, $topic, 1 );
 	return $tmpl;
-
-	#$session->writeCompletePage( $tmpl, 'Edit database field', "text/html");
 }
 
 sub _showFieldEditorButton {
@@ -668,11 +675,17 @@ sub _showFieldEditorButton {
 	my $fieldname  = $params->{'field'}      || "";
 	my $buttonName = $params->{'buttonName'} || "Edit field $fieldname";
 	my $type       = $params->{'type'}       || "";
+	my $format       = $params->{'format'}       || 0;
 
 	return "error, no field given" if ( $fieldname eq "" );
-
-	return
-"[[/bin/rest/$pluginName/editfield?topic=$web.$topic&dbfieldname=$fieldname&type=$type][$buttonName]]";
+	
+	my $url = "/bin/rest/$pluginName/editfield?topic=$web.$topic&dbfieldname=$fieldname&type=$type";
+	if ( $format ne "" ) {
+        $format =~ s/%URL%/$url/g;
+        return $format;
+    }	
+    #else
+	return "[[$url][$buttonName]]";
 }
 
 sub _displayFieldValue {
@@ -686,7 +699,7 @@ sub _displayFieldValue {
 	return "error, no field given" if ( $fieldname eq "" );
 
 	my $result = getValues( $web, $topic, [$fieldname], 0 );
-	return "not defined" if ( !$result );
+	return "" if ( !$result );
 	my $fieldvalue = $result->{$fieldname};
 	if ($raw) {
 		$fieldvalue = Foswiki::entityEncode($fieldvalue);

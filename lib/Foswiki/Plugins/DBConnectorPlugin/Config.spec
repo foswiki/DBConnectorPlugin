@@ -1,5 +1,5 @@
 # ---+ DBConnectorPlugin
-# This is the configuration used by the <b>ToPDFPlugin</b> and the
+# This is the configuration used by the <b>DBConnectorPlugin</b> and the
 # <h2>Database</h2>
 # **STRING**
 # perl driver package
@@ -19,12 +19,11 @@ $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} = 1;
 
 # <h2>Link update, database updates</h2>
 # **STRING**
-# If a topic gets renamed, the DBConnector searches all tables you specify here to update the links in the fields, to keep them uptodata.
-# Leave _Empty_ for skipping ( performance ), use wildcard * for updating all webs or use a semicolon separated list
+# Semilicolon separated list of table-fields. If a topic gets renamed, the DBConnectorPlugin searches all fields you define here in all webs you define in the next option. Links referencing this renamed topic are updated like we are used to in Foswiki.
 $Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnInvolveFiedlsList} = "samplefield2";
 
 # **STRING**
-# semicolon separated list of fields to include when updating links
+# List of webs ( tables ) to include for updating fields, when a topic gets renamed. Use wildcard * for updating all webs or use a semicolon separated list.  Leave _Empty_ for skipping ( performance )
 $Foswiki::cfg{Plugins}{DBConnectorPlugin}{UpdateOnChangeWebList} = "*";
 
 # <h2>Logging</h2>

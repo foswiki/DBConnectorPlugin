@@ -37,7 +37,7 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.5';
+$RELEASE = '0.6';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
@@ -571,12 +571,17 @@ sub _fieldDataSaver {
 	my $cancel     = $query->param("action_cancel") || "";
 
 	# redirect back to the topic, if canceled
-
 	if ( $cancel ne "" ) {
 		$session->redirect( $redirectTo, 0 );
 		return 1;
 	}
-
+	
+	# TODO: read this out of the WYSIWYG plugin
+	my $SECRET_ID = 'WYSIWYG content - do not remove this comment, and never use this identical text in your topics';
+	# convert from WYSIWYG syntax to TML if an WYSIWYG editor has been used
+	if( $Foswiki::cfg{Plugins}{WysiwygPlugin}{Enabled} && ($data =~ s/<!--$SECRET_ID-->//go) ){
+	   $data = convertWYSIWYGcontent($data, $web, $topic);    
+	}
 	# checking lease
 	my ( $oopsUrl, $loginName, $unlockTime ) =
 	  Foswiki::Func::checkTopicEditLock( $web, $topic );
@@ -597,6 +602,11 @@ sub _fieldDataSaver {
 	$session->redirect( $redirectTo, 0 );
 }
 
+sub convertWYSIWYGcontent {
+	my ($data, $topic, $web) = @_;
+	return Foswiki::Plugins::WysiwygPlugin::TranslateHTML2TML($data, $topic, $web);	
+}
+
 sub _showFieldEditor {
 	my $session = shift;
 	my $web     = $session->{webName};
@@ -612,7 +622,7 @@ sub _showFieldEditor {
 	
 	# checking lease
 	my ( $oopsUrl, $loginName, $unlockTime ) =
-	  Foswiki::Func::checkTopicEditLock( $web, $topic );
+	Foswiki::Func::checkTopicEditLock( $web, $topic );
 	if ( $unlockTime > 0 ) {
 		$session->redirect( $oopsUrl, 0 );
 	}

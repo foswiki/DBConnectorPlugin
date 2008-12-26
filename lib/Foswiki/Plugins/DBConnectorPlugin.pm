@@ -486,19 +486,19 @@ sub _debug {
 	return if !$Foswiki::cfg{Plugins}{DBConnectorPlugin}{Debug};
 	my ( $message, @param ) = @_;
 
-	TWiki::Func::writeDebug( "[DBConnectorPlugin]:" . $message );
+	Foswiki::Func::writeDebug( "[DBConnectorPlugin]:" . $message );
 	if ( @param > 0 ) {
 		foreach my $p (@param) {
-			TWiki::Func::writeDebug( "[DBConnectorPlugin]://Param:" . $p );
+			Foswiki::Func::writeDebug( "[DBConnectorPlugin]://Param:" . $p );
 		}
 	}
-	TWiki::Func::writeDebug("[DBConnectorPlugin]:----------\n");
+	Foswiki::Func::writeDebug("[DBConnectorPlugin]:----------\n");
 }
 
 sub _warn {
 	my ( $message, @param ) = @_;
 	_debug( $message, @param );
-	return TWiki::Func::writeWarning($message);
+	return Foswiki::Func::writeWarning($message);
 }
 
 sub _hasAccess {

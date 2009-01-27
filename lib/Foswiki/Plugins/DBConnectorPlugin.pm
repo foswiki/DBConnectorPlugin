@@ -104,7 +104,7 @@ sub getValues {
 	my $fields      = shift;
 	my $checkAccess = shift || 1;
 	my @fields      = @{$fields};
-	_debug( "Getting values for$web.Topic - fields:", @fields );
+	_debug( "Getting values for $web.$topic - fields:", @fields );
 	if ( $checkAccess && !_hasAccess("VIEW") ) {
 
 		# no access;
@@ -204,12 +204,13 @@ sub _createEntryForTopicIfNotExitent {
 	my $created = 0;
 	my $result = getValues( $web, $topic, ["topic_id"], 0 );
 	if ( defined $result ) {
-		my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
-		_debug("Inserting values: $qry");
-		$created = $DBC_con->do($qry);
+		      _debug("no need to create, topic entry was there before");  
 	}
 	else {
-		_debug("no need to create, topic entry was there before");		
+	    my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
+        _debug("Inserting values: $qry");
+        $created = $DBC_con->do($qry);
+	
 	}
 
 # somehow this is not working. Any ideas?

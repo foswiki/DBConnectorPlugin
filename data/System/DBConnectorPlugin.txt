@@ -137,8 +137,9 @@ __Note:__ You do not need to install anything on the browser to use this plugin.
 |  Plugin Author: | Foswiki:Main.EugenMayer |
 |  Copyright: | &copy; Impressive.media |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Plugin Version: | 18 Dez 2008 (V0.6) |
+|  Plugin Version: | 28 Jan 2009 (V0.7) |
 |  Change History: | <!-- versions below in reverse order --> |
+|  28 Jan 2009: | Made a workarround for the bug in the debian(etch stable) lib-perl-sqlite package, which yet fails on named binding due this bug |
 |  22 Dez 2008: | Fixed editing with the WYSIWYG Editor, content is now saved with TML syntax like topics are |
 |  17 Dez 2008: | * Fixed some bugs. Also disabled the locking, because if something is locked, and "i try anyway" the redirect is wrong%BR% * generalized createDB to be able to use other topics for creation of tables%BR% * added form on the plugin-topic to be easy able to create tables for webs|
 |  17 Dez 2008: | * added access checks, so users can`t change data for a topic in the database, if they have CHANGE rights on the topic inf foswiki%BR% * Added default Field-Editor User Interface to edit fields of a topic with the WYSIWYG out of the box, respectfully added handler for that. This UI is build to be reused and is customizeable%BR% * Added locking/unlockin topics when fields are edited%BR% * Added Macro to show Edit-Button and to display Field-Values in topics%BR% * createDB is now more secure, only allowed to admins anymore|

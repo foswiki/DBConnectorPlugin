@@ -37,7 +37,7 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.6';
+$RELEASE = '0.7';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
@@ -129,7 +129,7 @@ sub getValues {
 		_warn("could not send query, maybe table missing?");
 		return undef;
 	}
-	$qryobj->execute()
+	eval { $qryobj->execute(); }
 	  or _warn( "could not send query: $qry, error:" . $qryobj->err );
 	my $result = $qryobj->fetchrow_hashref();
 
@@ -164,9 +164,9 @@ updateValues("System",'WebHome',\%pairs);
 sub updateValues {
 	my $web            = shift;
 	my $topic          = shift;
-	my $fiedValuePairs = shift;
+	my $fieldValuePairs = shift;
 	my $checkAccess    = shift || 1;
-	_debug( "Updating values inserted", keys %{$fiedValuePairs} );
+	_debug( "Values to update", keys %{$fieldValuePairs} );
 
 	#checking acces if i have to. Also checking if the table exists
 	if ( $checkAccess && !_hasAccess("CHANGE") ) {
@@ -176,8 +176,10 @@ sub updateValues {
 	}
 	_createEntryForTopicIfNotExitent( $web, $topic );
 
-  # craete a field list with placeholder(?), while each field is surrounded by `
-	my $values = "`" . join( "`=?,`", keys %{$fiedValuePairs} ) . "`=?";
+	# craete a field list with placeholder(?), while each field is surrounded by `
+	my $values = join ( ',', 
+				map( { "`$_`='$fieldValuePairs->{$_}'" } keys %{$fieldValuePairs} )
+			     );
 	my $qry = qq(UPDATE $web SET $values WHERE `$TableKeyField`='$topic' );
 
 	_debug("Query: $qry");
@@ -185,14 +187,14 @@ sub updateValues {
 	unless ($qryobj) {
 		_warn(  "could not prepare qry, table missing? \nerror:"
 			  . $DBC_con->errstr );
-		return;
+		return ();
 	}
 
 	# now insert the values for the placeholders into the query
-	eval { $qryobj->execute( values %{$fiedValuePairs} ) }
+	eval { $qryobj->execute(); }
 	  or _warn(
 		"could not insert values for $web.$topic \nerror:" . $DBC_con->errstr,
-		values %{$fiedValuePairs} );
+		values %{$fieldValuePairs} );
 	$qryobj->finish();
 	_debug("Values upated");
 }
@@ -484,7 +486,7 @@ sub _updateLinksInString {
 }
 
 sub _debug {
-	return if !$Foswiki::cfg{Plugins}{DBConnectorPlugin}{Debug};
+#	return if !$Foswiki::cfg{Plugins}{DBConnectorPlugin}{Debug};
 	my ( $message, @param ) = @_;
 
 	Foswiki::Func::writeDebug( "[DBConnectorPlugin]:" . $message );

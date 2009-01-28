@@ -108,7 +108,7 @@ sub getValues {
 	if ( $checkAccess && !_hasAccess("VIEW") ) {
 
 		# no access;
-		return;
+		return undef;
 	}
 
 	if ( @fields < 1 ) {
@@ -197,6 +197,7 @@ sub updateValues {
 		values %{$fieldValuePairs} );
 	$qryobj->finish();
 	_debug("Values upated");
+	return ();
 }
 
 sub _createEntryForTopicIfNotExitent {
@@ -205,13 +206,15 @@ sub _createEntryForTopicIfNotExitent {
 
 	my $created = 0;
 	my $result = getValues( $web, $topic, ["topic_id"], 0 );
-	if ( defined $result ) {
-		      _debug("no need to create, topic entry was there before");  
-	}
-	else {
+	
+	if ( scalar( %{$result} ) eq 0 ) {
 	    my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
         _debug("Inserting values: $qry");
         $created = $DBC_con->do($qry);
+		 
+	}
+	else {
+        _debug("no need to create, topic entry was there before");  
 	
 	}
 
@@ -641,7 +644,10 @@ sub _showFieldEditor {
 
 	# read and check access rights
 	my $result = getValues( $web, $topic, [$fieldname], 0 );
-	my $fieldvalue = Foswiki::entityEncode( $result->{$fieldname} );
+	my $fieldvalue = "";
+	if(defined $result->{$fieldname}){
+	   $fieldvalue = Foswiki::entityEncode( $result->{$fieldname} );
+	}
     my $templateName = "editdbfield"; 
     $templateName .= "_$type" if $type ne "";
 	my $tmpl = $session->templates->readTemplate( $templateName, $skin );
@@ -661,7 +667,8 @@ sub _showFieldEditor {
 	$tmpl =~ s/%TOPICPARENT%/$theParent/;
 	$tmpl = $session->handleCommonTags( $tmpl, $web, $topic, undef );
 	$tmpl = $session->renderer->getRenderedVersion( $tmpl, $web, $topic );
-	$tmpl =~ s/%TEXT%/$fieldvalue/;
+	
+    $tmpl =~ s/%TEXT%/$fieldvalue/;	    
 
 	# page title
 

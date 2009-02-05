@@ -37,7 +37,7 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.7';
+$RELEASE = '0.8';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
@@ -322,7 +322,6 @@ sub _createDB {
 				""
 			]
 		);
-
 	}
 
 	my ( $meta, $qrytext ) =
@@ -353,6 +352,20 @@ sub _createDB {
 
 	if ( !getValues( $web, $topic, [$TableKeyField], 0 ) ) {
 		sendQry($qrytext);
+	}
+	else {
+	    _warn( "could not create table $targetWeb, it exists allready");
+        throw Foswiki::OopsException(
+            'attention',
+            def    => "generic",
+            web    => $web,
+            topic  => $topic,
+            keep   => 1,
+            params => [
+                "could not create table $targetWeb, it exists allready",
+                "", "", ""
+            ]
+        );	    
 	}
 
 	if ( $DBC_con->errstr ne "" ) {
@@ -699,7 +712,7 @@ sub _showFieldEditorButton {
 
 	return "error, no field given" if ( $fieldname eq "" );
 	
-	my $url = "/bin/rest/$pluginName/editfield?topic=$web.$topic&dbfieldname=$fieldname&type=$type";
+	my $url = Foswiki::Func::getScriptUrl("", "","rest")."/$pluginName/editfield?topic=$web.$topic&dbfieldname=$fieldname&type=$type";
 	if ( $format ne "" ) {
         $format =~ s/%URL%/$url/g;
         return $format;

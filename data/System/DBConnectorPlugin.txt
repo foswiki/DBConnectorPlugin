@@ -55,7 +55,7 @@ With the macro !%DISPLAYDBFIELD% you can let display the value of a field in a t
 | _topic_ | Current topic | Sets the topic name of which you want to display the field |
 | _field_ | - | *required* Name of the field you want to display |
 | _format_ | _field_ | here you can use a format string, while !%VALUE% get replaced by the field value |
-| _raw_ | 0 | if you set this to true, the result field will not be rendered, so no TML->HTML conversion |
+| _raw_ | 0 | if you set this to true, the result field will not be rendered, so no TML to html conversion |
 *Example:* !%DISPLAYDBFIELD{ field="samplefield2" }% -> %DISPLAYDBFIELD{ field="samplefield2" }%
 ---++ Methods
 ---+++ getValues( $web, $topic, @fields ) -> ( %result )
@@ -103,7 +103,7 @@ if you want to create a initial table for a web, where informations can be store
    * %DBCONTABLEKEYFIELD% gets expanded to the primary key which is defined in the Configuration-Center $Foswiki::cfg{Plugins}{DBConnectorPlugin}{TableKeyField}
 <em>_you can disallow the creatinof table with unchecking $Foswiki::cfg{Plugins}{DBConnectorPlugin}{allowCreatedb} in the Configuration-Center _</em>
 you call the rest handler this way, creating a data for the web "TheWeb"
-<pre>%SCRIPTURL{"rest"}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
+<pre>%SCRIPTURL{rest}%/DBConnectorPlugin/createdb?topic=TheWeb.WebHome </pre>
 *Attention*: Only admin user will be allowed to call this rest-handler
 
 
@@ -118,7 +118,7 @@ Decide if you want links to be auto updated, if a topic gets removed and which w
 ---+++ Optional: Create table
    1 check this [[DBConnectorPluginCreateTableQuery][topic]] to see, which query is used to create the table for a web, where information is stored
    1 create test table
-   <form action="/bin/rest/DBConnectorPlugin/createdb?topic=%WEB%.%TOPIC%"" method="get">
+   <form action="%SCRIPTURL{rest}%/DBConnectorPlugin/createdb?topic=%WEB%.%TOPIC%"" method="get">
  
 | Create table for: | <input type="text" name="targetWeb" value="%WEB%"> | |
 | Query from web | <input type="text" name="sourceWeb" value="%WEB%"> | |
@@ -137,8 +137,9 @@ __Note:__ You do not need to install anything on the browser to use this plugin.
 |  Plugin Author: | Foswiki:Main.EugenMayer |
 |  Copyright: | &copy; 2009, Collaborganize [[www.collaborganize.com]] |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]]) |
-|  Plugin Version: | 28 Jan 2009 (V0.7) |
+|  Plugin Version: | 05 Feb 2009 (V0.8) |
 |  Change History: | <!-- versions below in reverse order --> |
+|  05 Feb 2009: | fixed some "fixed" script-url calls |
 |  28 Jan 2009: | Made a workarround for the bug in the debian(etch stable) lib-perl-sqlite package, which yet fails on named binding due this bug |
 |  22 Dez 2008: | Fixed editing with the WYSIWYG Editor, content is now saved with TML syntax like topics are |
 |  17 Dez 2008: | * Fixed some bugs. Also disabled the locking, because if something is locked, and "i try anyway" the redirect is wrong%BR% * generalized createDB to be able to use other topics for creation of tables%BR% * added form on the plugin-topic to be easy able to create tables for webs|
@@ -155,9 +156,9 @@ __Note:__ You do not need to install anything on the browser to use this plugin.
  __Related Topic:__
 
 -- Foswiki:Main/EugenMayer - 15 Dez 2008
-
+ 
 %META:FORM{name="PackageForm"}%
-%META:FIELD{name="ExtensionClassification" attributes="" title="ExtensionClassification" value="Data and files , Editing and Editors, Libraries"}%
+%META:FIELD{name="ExtensionClassification" attributes="" title="ExtensionClassification" value="Data and files, Editing and Editors, Libraries"}%
 %META:FIELD{name="ExtensionType" attributes="" title="ExtensionType" value="PluginPackage"}%
 %META:FIELD{name="Compatibility" attributes="" title="[[Compatibility]]" value=""}%
 %META:FIELD{name="DemoUrl" attributes="" title="DemoUrl" value="http://"}%

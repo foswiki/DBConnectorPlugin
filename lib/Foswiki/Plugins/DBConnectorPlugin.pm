@@ -207,7 +207,7 @@ sub _createEntryForTopicIfNotExitent {
 	my $created = 0;
 	my $result = getValues( $web, $topic, ["topic_id"], 0 );
 	
-	if ( scalar( %{$result} ) eq 0 ) {
+	if ( defined($result) && scalar( %{$result} ) eq 0 ) {
 	    my $qry = "INSERT into $web (`$TableKeyField`) VALUES ('$topic')";
         _debug("Inserting values: $qry");
         $created = $DBC_con->do($qry);

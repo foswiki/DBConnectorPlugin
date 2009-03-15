@@ -558,7 +558,7 @@ sub _connect {
 	$DBC_con = DBI->connect(
 		$dsn, "", "",
 		{
-			RaiseError       => 1,
+			RaiseError       => 0,
 			FetchHashKeyName => NAME_lc => @_
 		}
 	);

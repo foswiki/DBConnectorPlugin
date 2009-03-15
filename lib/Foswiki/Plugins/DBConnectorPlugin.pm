@@ -37,7 +37,7 @@ $VERSION = '$Rev: 12445$';
 # This is a free-form string you can use to "name" your own plugin version.
 # It is *not* used by the build automation tools, but is reported as part
 # of the version number in PLUGINDESCRIPTIONS.
-$RELEASE = '0.8';
+$RELEASE = '0.9';
 
 # Short description of this plugin
 # One line description, is shown in the %FoswikiWEB%.TextFormattingRules topic:
@@ -350,7 +350,7 @@ sub _createDB {
 	$qrytext =~ s/%TOPICNAME%/WebHomee/im;
 	$qrytext =~ s/%DBCONTABLEKEYFIELD%/$TableKeyField/im;
 
-	if ( !getValues( $web, $topic, [$TableKeyField], 0 ) ) {
+	if ( !getValues( $targetWeb, "WebHome", [$TableKeyField], 0 ) ) {
 		sendQry($qrytext);
 	}
 	else {
